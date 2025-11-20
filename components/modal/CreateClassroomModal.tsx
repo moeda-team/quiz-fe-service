@@ -15,10 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import type { Classroom } from "@/types/classroom";
 
+type CreateClassroomInput = Omit<Classroom, "id" | "createdAt">;
+
 interface CreateClassModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (classroom: Omit<Classroom, "id">) => void;
+  onSubmit: (data: CreateClassroomInput) => void;
 }
 
 export default function CreateClassModal({
