@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,7 +40,6 @@ export default function LoginPage() {
 
     // ❌ Login gagal
     if (!result || result.error) {
-      // bisa juga cek kode error di sini kalau mau beda pesan
       console.log(result);
       setErrorMsg(result?.error ?? "Email atau password salah.");
       return;
@@ -54,8 +53,6 @@ export default function LoginPage() {
     const isChecked = checked === true;
     setRememberMe(isChecked);
 
-    // contoh implementasi rememberMe (optional):
-    // kalau mau menyimpan email di localStorage:
     if (isChecked) {
       localStorage.setItem("remember_email", email);
     } else {
@@ -68,7 +65,6 @@ export default function LoginPage() {
     router.push("/auth/forgot-password");
 
   const handleSignInWithGoogle = () => {
-    // Pastikan kamu sudah set GoogleProvider di NextAuth kalau mau pakai ini
     void signIn("google", {
       callbackUrl,
     });
@@ -106,7 +102,10 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center bg-gray-50 text-black">
         <div className="w-full max-w-md border p-8 rounded-lg bg-white">
           <div className="mb-8 text-center">
-            <h2 className="mb-2 text-2xl font-semibold" style={{ fontFamily: "serif" }}>
+            <h2
+              className="mb-2 text-2xl font-semibold"
+              style={{ fontFamily: "serif" }}
+            >
               Welcome Back
             </h2>
             <p className="text-gray-900">
@@ -192,7 +191,6 @@ export default function LoginPage() {
               onClick={handleSignInWithGoogle}
             >
               <div className="flex items-center justify-center">
-                {/* Google icon placeholder */}
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -228,5 +226,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }
