@@ -1,5 +1,5 @@
 // lib/api.ts
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api-quiz.hompimpa.biz.id";
 
 const username = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME || '';
 const password = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || '';

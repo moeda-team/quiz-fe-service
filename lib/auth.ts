@@ -44,9 +44,9 @@ export const authOptions: NextAuthOptions = {
         const password = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || '';
 
         const basicAuth = `Basic ${btoa(`${username}:${password}`)}`;
-
+        console.log(credentials)
         try {
-          const res = await fetch(`${API_BASE_URL}/users/sign/in`, {
+          const res = await fetch(`${API_BASE_URL}/users/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
