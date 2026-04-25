@@ -26,6 +26,41 @@ const quizzes = [
     author: "Rizal Maidan",
     image: "/images/sejarah.jpg",
   },
+  {
+    id: 3,
+    title: "Pre Test - Sejarah Indonesia 1945",
+    questions: 1,
+    author: "Rizal Maidan",
+    image: "/images/sejarah.jpg",
+  },
+  {
+    id: 3,
+    title: "Pre Test - Sejarah Indonesia 1945",
+    questions: 1,
+    author: "Rizal Maidan",
+    image: "/images/sejarah.jpg",
+  },
+  {
+    id: 3,
+    title: "Pre Test - Sejarah Indonesia 1945",
+    questions: 1,
+    author: "Rizal Maidan",
+    image: "/images/sejarah.jpg",
+  },
+  {
+    id: 3,
+    title: "Pre Test - Sejarah Indonesia 1945",
+    questions: 1,
+    author: "Rizal Maidan",
+    image: "/images/sejarah.jpg",
+  },
+  {
+    id: 3,
+    title: "Pre Test - Sejarah Indonesia 1945",
+    questions: 1,
+    author: "Rizal Maidan",
+    image: "/images/sejarah.jpg",
+  },
 ];
 
 export default function HomePage() {
@@ -47,23 +82,23 @@ export default function HomePage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex flex-col">
+      <div className="relative z-10 min-h-screen flex flex-col py-10">
         {/* Header */}
         <header className="pt-6 pb-4">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-amber-900 drop-shadow-lg tracking-wide" style={{ fontFamily: 'serif' }}>
+            <h1 className="text-4xl md:text-5xl font-medium text-black drop-shadow-lg tracking-wide text-shadow-lg text-shadow-amber-300">
               PANDAI KUIS
             </h1>
           </div>
         </header>
 
         {/* Search Bar */}
-        <div className="px-4 md:px-8 max-w-4xl mx-auto w-full mb-4 sm:mb-6">
+        <div className="px-4 md:px-8 max-w-5xl mx-auto w-full">
           <div className="relative">
             <input
               type="text"
               placeholder="Ketik disini untuk mencari kuis..."
-              className="w-full py-2 sm:py-3 px-4 sm:px-6 rounded-full bg-amber-50/90 border-2 border-amber-700/30 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-amber-700 shadow-lg text-sm sm:text-base"
+              className="w-full py-2 sm:py-3 px-4 sm:px-6 rounded-full bg-amber-50/90 border-4 border-amber-700/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-amber-700 shadow-lg text-sm sm:text-base"
             />
             <svg
               className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-amber-700"
@@ -81,24 +116,25 @@ export default function HomePage() {
           </div>
         </div>
 
-
-        {/* Main Content Area */}
-        <div className="flex-1 px-4 md:px-8 pb-6 sm:pb-8">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 sm:gap-6">
-            {/* Left Side - Quiz List */}
-            <div className="flex-1">
-              <div className="bg-amber-50/95 rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl border border-amber-200">
+        <div className="flex-1">
+          <div className="max-w-7xl h-full  mx-auto flex flex-col items-start justify-start" >
+            <img src="/images/people.svg" alt="people" className="h-full" />
+          </div>
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 sm:gap-6 h-[calc(68vh-100px)]">
+            <div className="flex-1  rounded-4xl p-4 " style={{ backgroundImage: 'url(/images/bg-card-list.svg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="rounded-2x">
                 {/* Section Header */}
-                <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                  <span className="text-xl sm:text-2xl">🌸</span>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-amber-900">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icon-title-l.svg" alt="icon" className="w-16 h-16" />
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-900">
                     Semua Kuis
                   </h2>
-                  <span className="text-xl sm:text-2xl">🌸</span>
+                  <img src="/images/icon-title-r.svg" alt="icon" className="w-16 h-16" />
                 </div>
-
+                
                 {/* Quiz Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div className="max-h-[calc(58vh-100px)] overflow-auto p-4 rounded-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {quizzes.map((quiz) => (
                     <div
                       key={quiz.id}
@@ -120,11 +156,11 @@ export default function HomePage() {
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Right Side - Action Buttons */}
+            
             <div className="w-full md:w-48 flex flex-col gap-2 sm:gap-3">
               <Link
                 href="/admin"
@@ -145,6 +181,7 @@ export default function HomePage() {
                 <span className="font-bold text-red-900 text-sm sm:text-base">logout</span>
               </div>
             </div>
+            
           </div>
         </div>
       </div>
