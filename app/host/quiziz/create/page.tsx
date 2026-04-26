@@ -45,7 +45,7 @@ export default function CreateQuizPage() {
   const router = useRouter();
   const { createQuiz, isLoading: isMutating } = useQuizzes();
   const { uploadFile, isUploading } = useFileUpload();
-  const { themes, isLoading: isThemesLoading } = useThemes();
+  const { themes, isLoading: isThemesLoading, addTheme } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
@@ -87,9 +87,23 @@ export default function CreateQuizPage() {
 
       if (response.success) {
         if (type === "image") {
-          form.setValue("coverImage", response.data.url);
-          setSelectedTheme("custom");
-          toast.success("Gambar berhasil diupload!");
+          // Create a new theme in master data
+          try {
+            const newTheme = await addTheme({
+              name: `Tema Kustom ${new Date().toLocaleDateString()}`,
+              imageUrl: response.data.url
+            });
+            
+            form.setValue("themeId", newTheme.id);
+            form.setValue("coverImage", newTheme.imageUrl);
+            setSelectedTheme(newTheme.id);
+            toast.success("Tema kustom berhasil dibuat!");
+          } catch (err: any) {
+            // Fallback if theme creation fails but upload succeeded
+            form.setValue("coverImage", response.data.url);
+            setSelectedTheme("custom");
+            toast.error("Gagal mendaftarkan tema kustom: " + err.message);
+          }
         } else {
           form.setValue("musicFile", response.data.url);
           toast.success("Musik berhasil diupload!");

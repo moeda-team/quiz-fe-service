@@ -192,10 +192,10 @@ export default function DashboardAdminPage() {
                               <span className="text-4xl md:text-5xl group-hover:scale-125 transition-transform duration-500">📚</span>
                             )}
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            
+
                             {/* Action Buttons Overlay */}
                             <div className="absolute top-2 right-2 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Link 
+                              <Link
                                 href={`/host/quiziz/edit/${quiz.id}`}
                                 className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-amber-700 shadow-md hover:bg-amber-700 hover:text-white transition-all"
                                 onClick={(e) => e.stopPropagation()}

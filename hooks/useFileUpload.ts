@@ -35,10 +35,6 @@ export function useFileUpload() {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("category", category);
-        formData.append("context", context);
-        if (contextId) {
-          formData.append("contextId", contextId);
-        }
 
         const response = await fetch(`${API_BASE_URL}/files/upload`, {
           method: "POST",
