@@ -12,7 +12,6 @@ async function getAuthHeader() {
   // Try to get session (works on client side)
   try {
     const session = await getSession();
-    console.log("[API] Current Session:", session);
     if (session?.access_token) {
       return `Bearer ${session.access_token}`;
     }
@@ -27,13 +26,13 @@ export async function apiPost<T>(
   body: unknown
 ): Promise<T> {
   const authHeader = await getAuthHeader();
-  
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { 
+    headers: {
       "Authorization": authHeader,
       "Content-Type": "application/json"
-     },
+    },
     body: JSON.stringify(body),
   });
 
@@ -58,10 +57,94 @@ export async function apiGet<T>(
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "GET",
-    headers: { 
+    headers: {
       "Authorization": authHeader,
       "Content-Type": "application/json"
-     },
+    },
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<T>;
+}
+export async function apiPut<T>(
+  path: string,
+  body: unknown
+): Promise<T> {
+  const authHeader = await getAuthHeader();
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": authHeader,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export async function apiPatch<T>(
+  path: string,
+  body: unknown
+): Promise<T> {
+  const authHeader = await getAuthHeader();
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": authHeader,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export async function apiDelete<T>(
+  path: string
+): Promise<T> {
+  const authHeader = await getAuthHeader();
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: {
+      "Authorization": authHeader,
+      "Content-Type": "application/json"
+    },
   });
 
   if (!res.ok) {

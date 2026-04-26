@@ -57,13 +57,12 @@ function LoginPageInner() {
       });
 
       if (!result || result.error) {
-        console.log(result);
         setErrorMsg(result?.error ?? "Email atau password salah.");
         return;
       }
 
       // Redirect to dashboard on successful login
-      window.location.href = "/dashboard";
+      window.location.href = "/auth/redirect";
     } catch {
       setErrorMsg("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
@@ -120,12 +119,12 @@ function LoginPageInner() {
                       fill
                       className="object-contain"
                     />
-                    <div className="absolute inset-0 translate-y-1 flex flex-col items-center justify-center text-amber-900 text-xs lg:text-sm sm:text-base"  style={{ fontFamily: 'serif' }}>
+                    <div className="absolute inset-0 translate-y-1 flex flex-col items-center justify-center text-amber-900 text-xs lg:text-sm sm:text-base" style={{ fontFamily: 'serif' }}>
                       Belajar seru, kuis asyik, jadi pandai
                     </div>
                   </div>
                   <div className="relative w-full my-2 mt-4 sm:mt-6 md:mt-10 text-xs sm:text-sm">
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-amber-900"  style={{ fontFamily: 'serif' }}>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-amber-900" style={{ fontFamily: 'serif' }}>
                       - Login untuk melanjutkan -
                     </div>
                   </div>

@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     "Platform pembelajaran online dengan fitur CRUD kelas, materi, dan quiz.",
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: {
@@ -17,7 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-slate-950 text-slate-50">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );

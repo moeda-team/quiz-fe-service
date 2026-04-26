@@ -4,14 +4,36 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Trash2, Edit2, AlertTriangle } from "lucide-react";
 import { useQuizzes } from "@/hooks/useQuizzes";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function DashboardAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState<string | number | null>(null);
 
-  const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore } = useQuizzes(debouncedSearch);
+  const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, deleteQuiz } = useQuizzes(debouncedSearch);
+
+  const handleDeleteQuiz = async (id: string | number) => {
+    try {
+      await deleteQuiz(id);
+      toast.success("Kuis berhasil dihapus");
+    } catch (err: any) {
+      toast.error("Gagal menghapus kuis: " + err.message);
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -170,6 +192,29 @@ export default function DashboardAdminPage() {
                               <span className="text-4xl md:text-5xl group-hover:scale-125 transition-transform duration-500">📚</span>
                             )}
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            
+                            {/* Action Buttons Overlay */}
+                            <div className="absolute top-2 right-2 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Link 
+                                href={`/host/quiziz/edit/${quiz.id}`}
+                                className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-amber-700 shadow-md hover:bg-amber-700 hover:text-white transition-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </Link>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setQuizToDelete(quiz.id);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-red-600 shadow-md hover:bg-red-600 hover:text-white transition-all"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                           <div className="p-4 flex flex-col flex-1 bg-amber-50/30">
                             <h3 className="font-bold text-amber-950 mb-2 text-sm md:text-base line-clamp-2 leading-snug">
@@ -209,7 +254,7 @@ export default function DashboardAdminPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-row lg:flex-col gap-3 md:gap-4 justify-center items-center shrink-0 py-2">
-              <Link href="#" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
+              <Link href="/host/quiziz/create" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
                 <img src="/images/create.svg" alt="Create" className="w-full h-auto drop-shadow-lg" />
               </Link>
               <Link href="#" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
@@ -234,6 +279,35 @@ export default function DashboardAdminPage() {
           </svg>
         </button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#fdf6e9] border-2 border-amber-200 rounded-3xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+              <AlertTriangle className="w-8 h-8" />
+              <AlertDialogTitle className="text-2xl font-bold text-amber-950">Hapus Kuis?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-amber-900 text-base">
+              Tindakan ini tidak dapat dibatalkan. Kuis ini akan dihapus secara permanen dari server kami.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel className="rounded-xl border-amber-200 text-amber-950 hover:bg-amber-50">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (quizToDelete) {
+                  handleDeleteQuiz(quizToDelete);
+                  setQuizToDelete(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-6"
+            >
+              Ya, Hapus Sekarang
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

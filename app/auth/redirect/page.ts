@@ -6,10 +6,9 @@ import { authOptions } from "@/lib/auth";
 export default async function RedirectPage() {
   const session = await getServerSession(authOptions);
 
-  const role = session?.user?.role;
+  const role = session?.user?.role?.toLowerCase();
 
-  if (role === "admin") redirect("/dashboard/admin");
-  if (role === "teacher") redirect("/dashboard/teacher");
+  if (role === "admin" || role === "teacher") redirect("/host");
   if (role === "student") redirect("/dashboard/student");
 
   redirect("/");
