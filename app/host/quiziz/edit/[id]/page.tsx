@@ -21,6 +21,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useQuizzes } from "@/hooks/useQuizzes";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useThemes } from "@/hooks/useThemes";
+import { useRef } from "react";
 
 const quizSchema = z.object({
   title: z.string().min(3, "Judul kuis minimal 3 karakter"),
@@ -32,63 +35,51 @@ const quizSchema = z.object({
 
 type QuizFormValues = z.infer<typeof quizSchema>;
 
-const themes = [
-  {
-    id: "theme-1",
-    name: "Kemerdekaan",
-    image: "/theme_thumbnail_independence_1777210075405.png",
-  },
-  {
-    id: "theme-2",
-    name: "Pesan Bijak",
-    image: "/theme_thumbnail_scroll_1777210101541.png",
-  },
-  {
-    id: "theme-3",
-    name: "Budaya Bali 1",
-    image: "/theme_thumbnail_bali_1777209991305.png",
-  },
-  {
-    id: "theme-4",
-    name: "Budaya Bali 2",
-    image: "/theme_thumbnail_bali_1777209991305.png",
-  },
-];
+// Themes are now fetched from useThemes hook
 
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
   const { getQuizById, updateQuiz, isLoading: isActionLoading } = useQuizzes();
-  const [selectedTheme, setSelectedTheme] = useState<string>("theme-2");
+  const { uploadFile, isUploading } = useFileUpload();
+  const { themes, isLoading: isThemesLoading } = useThemes();
+  const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const musicFileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
     defaultValues: {
       title: "",
       instructions: "",
-      themeId: "theme-2",
+      themeId: "",
       coverImage: "",
-      musicFile: "",
+      musicFile: "/media/default.mp3",
     },
   });
 
   useEffect(() => {
     const fetchQuiz = async () => {
-      if (!params.id) return;
+      if (!params.id || themes.length === 0) return;
       try {
         const response = await getQuizById(params.id as string);
         const quizData = response.data || response;
 
         // Map API response to form values
+        const themeId = quizData.themeId || quizData.theme_id || "";
+        const isDefaultTheme = themes.some(t => t.id === themeId);
+
         form.reset({
           title: quizData.title || quizData.name || "",
           instructions: quizData.instructions || quizData.description || "",
-          themeId: quizData.themeId || quizData.theme_id || "theme-2",
+          themeId: themeId,
           coverImage: quizData.coverImage || quizData.image || quizData.cover_image || "",
-          musicFile: quizData.musicFile || quizData.music_file || "",
+          musicFile: quizData.musicFile || quizData.music_file || "/media/default.mp3",
         });
-        setSelectedTheme(quizData.themeId || quizData.theme_id || "theme-2");
+        
+        setSelectedTheme(isDefaultTheme ? themeId : (themeId ? "custom" : ""));
       } catch (err) {
         toast.error("Gagal mengambil data kuis");
       } finally {
@@ -96,15 +87,45 @@ export default function EditQuizPage() {
       }
     };
 
-    fetchQuiz();
-  }, [params.id, getQuizById, form]);
+    if (themes.length > 0) {
+      fetchQuiz();
+    }
+  }, [params.id, getQuizById, form, themes]);
+
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "image" | "audio"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const category = type === "image" ? "image" : "audio";
+      const context = "quiz";
+      
+      const response = await uploadFile(file, category, context);
+      
+      if (response.success) {
+        if (type === "image") {
+          form.setValue("coverImage", response.data.url);
+          setSelectedTheme("custom");
+          toast.success("Gambar berhasil diupload!");
+        } else {
+          form.setValue("musicFile", response.data.url);
+          toast.success("Musik berhasil diupload!");
+        }
+      }
+    } catch (err: any) {
+      toast.error(`Gagal upload ${type}: ` + err.message);
+    }
+  };
 
   const onSubmit = async (data: QuizFormValues) => {
     try {
       const payload = {
         ...data,
-        themeId: selectedTheme,
-        coverImage: data.coverImage || themes.find(t => t.id === selectedTheme)?.image || "",
+        themeId: selectedTheme === "custom" ? "1a0206aa-72b6-4c83-b258-3a8c4bce9b1c" : data.themeId,
+        coverImage: data.coverImage,
       };
 
       await updateQuiz(params.id as string, payload);
@@ -131,10 +152,10 @@ export default function EditQuizPage() {
       {/* Background Layer */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/bg_quiz_create_1777209854215.png"
+          src={form.watch("coverImage") || "/bg_quiz_create_1777209854215.png"}
           alt="Background"
           fill
-          className="object-cover"
+          className="object-cover transition-all duration-500"
           priority
         />
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
@@ -153,28 +174,72 @@ export default function EditQuizPage() {
             <div className="space-y-4">
               <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {themes.map((theme) => (
-                  <div
-                    key={theme.id}
-                    onClick={() => {
-                      setSelectedTheme(theme.id);
-                      form.setValue("themeId", theme.id);
-                    }}
-                    className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 ${selectedTheme === theme.id ? "border-[#8d6e63] scale-105 shadow-lg" : "border-transparent opacity-80 hover:opacity-100"}`}
-                  >
-                    <Image src={theme.image} alt={theme.name} fill className="object-cover" />
-                    {selectedTheme === theme.id && (
+                {isThemesLoading ? (
+                  <div className="col-span-full flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  themes.map((theme) => (
+                    <div
+                      key={theme.id}
+                      onClick={() => {
+                        setSelectedTheme(theme.id);
+                        form.setValue("themeId", theme.id);
+                        form.setValue("coverImage", theme.imageUrl);
+                      }}
+                      className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 ${selectedTheme === theme.id ? "border-[#8d6e63] scale-105 shadow-lg" : "border-transparent opacity-80 hover:opacity-100"}`}
+                    >
+                      <Image src={theme.imageUrl} alt={theme.name} fill className="object-cover" />
+                      {selectedTheme === theme.id && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm bg-black/40 px-2 py-1 rounded">Dipilih</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                {/* Upload Own Theme */}
+                <div
+                  onClick={() => coverImageInputRef.current?.click()}
+                  className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group ${
+                    selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
+                  }`}
+                >
+                  <input
+                    type="file"
+                    ref={coverImageInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, "image")}
+                  />
+                  {form.watch("coverImage") && selectedTheme === "custom" ? (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={form.watch("coverImage") || ""}
+                        alt="Custom Cover"
+                        fill
+                        className="object-cover rounded-lg"
+                      />
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm bg-black/40 px-2 py-1 rounded">Dipilih</span>
+                        <span className="text-white font-bold text-[10px] bg-black/40 px-2 py-1 rounded">
+                          Terganti
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
-                <div className="aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group">
-                  <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                    <Upload size={20} />
-                  </div>
-                  <span className="text-[10px] md:text-xs font-bold text-[#5d4037] text-center px-2">Upload Gambar</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                        {isUploading ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload size={20} />
+                        )}
+                      </div>
+                      <span className="text-[10px] md:text-xs font-bold text-[#5d4037] text-center px-2">
+                        {isUploading ? "Uploading..." : "Upload Gambar Sendiri"}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -201,10 +266,28 @@ export default function EditQuizPage() {
                     <FormLabel className="text-[#5d4037] font-bold text-lg">Musik</FormLabel>
                     <div className="relative">
                       <FormControl>
-                        <Input {...field} className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]" />
+                        <Input
+                          {...field}
+                          placeholder="Pilih file musik..."
+                          className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                        />
                       </FormControl>
-                      <div className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer">
-                        <Upload size={20} />
+                      <input
+                        type="file"
+                        ref={musicFileInputRef}
+                        className="hidden"
+                        accept="audio/*"
+                        onChange={(e) => handleFileUpload(e, "audio")}
+                      />
+                      <div
+                        onClick={() => musicFileInputRef.current?.click()}
+                        className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                      >
+                        {isUploading ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload size={20} />
+                        )}
                       </div>
                     </div>
                     <FormMessage />

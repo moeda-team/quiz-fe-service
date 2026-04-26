@@ -8,7 +8,7 @@ const password = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || '';
 
 const basicAuth = `Basic ${btoa(`${username}:${password}`)}`;
 
-async function getAuthHeader() {
+export async function getAuthHeader() {
   // Try to get session (works on client side)
   try {
     const session = await getSession();
