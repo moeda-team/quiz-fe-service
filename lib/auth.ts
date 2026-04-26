@@ -14,16 +14,16 @@ type LoginResponseUser = {
 
 type LoginResponse = {
   data: LoginResponseUser;
-  accessToken: string;
+  access_token: string;
 };
 
 type AppUser = LoginResponseUser & {
-  accessToken: string;
+  access_token: string;
 };
 
 function isAppUser(
   user: User | AdapterUser
-): user is User & { role: UserRole; accessToken?: string } {
+): user is User & { role: UserRole; access_token?: string } {
   return "role" in user;
 }
 
@@ -39,7 +39,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials.password) {
           return null;
         }
-        
+
         const username = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME || '';
         const password = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || '';
 
@@ -58,7 +58,6 @@ export const authOptions: NextAuthOptions = {
             }),
           });
 
-          console.log(res);
           if (!res.ok) {
             const text = await res.text().catch(() => "");
             console.error(
@@ -77,14 +76,22 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const data: LoginResponse = await res.json();
+          const data: any = await res.json();
+          console.log("[AUTH] Login Response Data:", data);
+
+          // Pastikan kita mengambil token dari tempat yang benar
+          const access_token = data.access_token || data.accessToken || data.token || data.data?.access_token || data.data?.token;
+
+          if (!access_token) {
+            console.error("[AUTH] No token found in API response");
+          }
 
           const appUser: AppUser = {
             id: data.data.id,
             name: data.data.name,
             email: data.data.email,
             role: data.data.role,
-            accessToken: data.accessToken,
+            access_token: access_token,
           };
 
           return appUser;
@@ -104,21 +111,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user && isAppUser(user)) {
+        console.log("[AUTH] JWT Callback - User data:", user);
         token.name = user.name;
         token.email = user.email;
         token.role = user.role ?? "student";
-        token.accessToken = user.accessToken;
+        token.access_token = user.access_token;
       }
       return token;
     },
     async session({ session, token }) {
+      console.log("[AUTH] Session Callback - Token data:", token);
       if (session.user) {
         session.user.name = token.name ?? session.user.name;
         session.user.email =
           (token.email as string | undefined) ?? session.user.email;
         session.user.role = token.role ?? "student";
       }
-      session.accessToken = token.accessToken;
+      session.access_token = token.access_token;
       return session;
     },
   },

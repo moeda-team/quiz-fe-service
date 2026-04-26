@@ -8,18 +8,18 @@ declare module "next-auth" {
     user: {
       role: UserRole;
     } & DefaultSession["user"];
-    accessToken?: string;
+    access_token?: string;
   }
 
   interface User extends DefaultUser {
     role: UserRole;
-    accessToken?: string;
+    access_token?: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     role?: UserRole;
-    accessToken?: string;
+    access_token?: string;
   }
 }
