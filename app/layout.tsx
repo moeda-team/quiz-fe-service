@@ -4,7 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  title: "Pandai Kuis",
+  title: "Empat Rima",
   description:
     "Platform pembelajaran online dengan fitur CRUD kelas, materi, dan quiz.",
 };

@@ -26,7 +26,7 @@ export function UnderConstructionPage() {
 
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline text-xs md:text-sm text-slate-500">
-              Pandai Kuis
+              Empat Rima
             </span>
             <Button
               variant="outline"
