@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Upload, Music, Save, ChevronLeft, Loader2 } from "lucide-react";
+import { Upload, Save, ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,10 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useQuizzes } from "@/hooks/useQuizzes";
-import { useFileUpload } from "@/hooks/useFileUpload";
-import { useThemes } from "@/hooks/useThemes";
-import { useRef } from "react";
 
 const quizSchema = z.object({
   title: z.string().min(3, "Judul kuis minimal 3 karakter"),
@@ -37,12 +33,17 @@ type QuizFormValues = z.infer<typeof quizSchema>;
 
 // Themes are now fetched from useThemes hook
 
+import { useQuizzes } from "@/hooks/useQuizzes";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useThemes } from "@/hooks/useThemes";
+import { useRef } from "react";
+
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
   const { getQuizById, updateQuiz, isLoading: isActionLoading } = useQuizzes();
   const { uploadFile, isUploading } = useFileUpload();
-  const { themes, isLoading: isThemesLoading, addTheme } = useThemes();
+  const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [isPageLoading, setIsPageLoading] = useState(true);
 
@@ -80,7 +81,7 @@ export default function EditQuizPage() {
         });
         
         setSelectedTheme(isDefaultTheme ? themeId : (themeId ? "custom" : ""));
-      } catch (err) {
+      } catch {
         toast.error("Gagal mengambil data kuis");
       } finally {
         setIsPageLoading(false);
@@ -92,45 +93,60 @@ export default function EditQuizPage() {
     }
   }, [params.id, getQuizById, form, themes]);
 
+  // Set default theme when themes are loaded and no quiz data is loaded
+  useEffect(() => {
+    if (themes.length > 0 && !selectedTheme && !isPageLoading) {
+      const defaultTheme = themes[0];
+      setSelectedTheme(defaultTheme.id);
+      form.setValue("themeId", defaultTheme.id);
+      form.setValue("coverImage", defaultTheme.imageUrl);
+    }
+  }, [themes, selectedTheme, form, isPageLoading]);
+
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "image" | "audio"
+    type: "image" | "music"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const category = type === "image" ? "image" : "audio";
+      const category = type === "image" ? "image" : "music";
       const context = "quiz";
-      
+
       const response = await uploadFile(file, category, context);
-      
-      if (response.success) {
+
+      if (response) {
         if (type === "image") {
           // Create a new theme in master data
           try {
             const newTheme = await addTheme({
-              name: `Tema Kustom ${new Date().toLocaleDateString()}`,
-              imageUrl: response.data.url
+              name: `Tema Kustom ${new Date()}`,
+              imageUrl: response.data.fileUrl
             });
             
+            // Refresh themes to ensure new theme appears in UI
+            await refreshThemes();
+            
             form.setValue("themeId", newTheme.id);
-            form.setValue("coverImage", newTheme.imageUrl);
+            form.setValue("coverImage", response.data.fileUrl);
             setSelectedTheme(newTheme.id);
             toast.success("Tema kustom berhasil dibuat!");
-          } catch (err: any) {
+          } catch (err: unknown) {
             // Fallback if theme creation fails but upload succeeded
-            form.setValue("coverImage", response.data.url);
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            form.setValue("coverImage", response.data.fileUrl);
             setSelectedTheme("custom");
-            toast.error("Gagal mendaftarkan tema kustom: " + err.message);
+            toast.error("Gagal mendaftarkan tema kustom: " + errorMessage);
           }
         } else {
-          form.setValue("musicFile", response.data.url);
+          form.setValue("musicFile", response.data.fileUrl);
           toast.success("Musik berhasil diupload!");
         }
       }
-    } catch (err: any) {
-      toast.error(`Gagal upload ${type}: ` + err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Gagal upload ${type}: ` + errorMessage);
     }
   };
 
@@ -145,8 +161,9 @@ export default function EditQuizPage() {
       await updateQuiz(params.id as string, payload);
       toast.success("Kuis berhasil diperbarui!");
       router.push("/host");
-    } catch (err: any) {
-      toast.error("Gagal memperbarui kuis: " + err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Gagal memperbarui kuis: " + errorMessage);
     }
   };
 
@@ -162,185 +179,298 @@ export default function EditQuizPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 md:p-8 overflow-hidden">
-      {/* Background Layer */}
+    <div className="h-screen relative overflow-hidden flex flex-col">
+      {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src={form.watch("coverImage") || "/bg_quiz_create_1777209854215.png"}
+          src="/images/bg-main.svg"
           alt="Background"
           fill
-          className="object-cover transition-all duration-500"
+          className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
       </div>
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-5xl h-auto min-h-[600px] bg-[#fdf6e9] rounded-[2.5rem] shadow-2xl border-[12px] border-[#e2d1b5] overflow-hidden flex flex-col">
-        <div className="w-full py-6 text-center">
-          <h1 className="text-3xl md:text-5xl font-bold text-[#4a3427] tracking-widest drop-shadow-sm uppercase" style={{ fontFamily: 'Varela Round' }}>
-            EDIT KUIS
-          </h1>
-        </div>
+      {/* Main Content */}
+      <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
+        {/* Header */}
+        <header className="shrink-0">
+          <div className="text-center">
+            <div
+              className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
+              style={{ fontFamily: 'Varela Round' }}
+            >
+              Empat Rima
+            </div>
+          </div>
+        </header>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 px-8 md:px-12 pb-10 space-y-8">
-            <div className="space-y-4">
-              <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {isThemesLoading ? (
-                  <div className="col-span-full flex justify-center py-8">
-                    <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+        {/* Content Section */}
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0">
+          {/* People Illustration (Desktop only) */}
+          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
+            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
+            {/* Main Card Form */}
+            <div
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              style={{
+                backgroundImage: 'url(/images/bg-card-list.svg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                fontFamily: 'Varela Round'
+              }}
+            >
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-4 flex flex-col">
+                  {/* Section Header */}
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+                    <div className="flex items-center gap-2 md:gap-4">
+                      <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                      <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
+                        EDIT KUIS
+                      </div>
+                      <img src="/images/icon-title-r.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                    </div>
                   </div>
-                ) : (
-                  themes.map((theme) => (
-                    <div
-                      key={theme.id}
-                      onClick={() => {
-                        setSelectedTheme(theme.id);
-                        form.setValue("themeId", theme.id);
-                        form.setValue("coverImage", theme.imageUrl);
-                      }}
-                      className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 ${selectedTheme === theme.id ? "border-[#8d6e63] scale-105 shadow-lg" : "border-transparent opacity-80 hover:opacity-100"}`}
-                    >
-                      <Image src={theme.imageUrl} alt={theme.name} fill className="object-cover" />
-                      {selectedTheme === theme.id && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm bg-black/40 px-2 py-1 rounded">Dipilih</span>
+
+                  {/* Form Content Scroll Area */}
+                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-4">
+                    {/* Theme Selection Section */}
+                    <div className="space-y-4">
+                      <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
+                      <div className="flex gap-6">
+                        {/* Theme List */}
+                        <div className="overflow-x-auto pb-4 flex-1">
+                          <div className="flex gap-4 min-w-max p-1 px-2">
+                            {isThemesLoading ? (
+                              <div className="flex justify-center py-8 min-w-[200px]">
+                                <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            ) : (
+                              themes.map((theme, index) => (
+                                <div
+                                  key={`${theme.id}-${index}`}
+                                  onClick={() => {
+                                    setSelectedTheme(theme.id);
+                                    form.setValue("themeId", theme.id);
+                                    form.setValue("coverImage", theme.imageUrl);
+                                  }}
+                                  className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 w-48 flex-shrink-0 ${
+                                    selectedTheme === theme.id 
+                                      ? "border-[#8d6e63] scale-105 shadow-lg" 
+                                      : "border-transparent opacity-80 hover:opacity-100"
+                                  }`}
+                                >
+                                  {theme.imageUrl && theme.imageUrl.trim() !== "" ? (
+                                    <Image 
+                                      src={theme.imageUrl} 
+                                      alt={theme.name || `Tema ${theme.id}`} 
+                                      fill 
+                                      className="object-cover" 
+                                      loading="lazy" 
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-300 flex items-center justify-center">
+                                      <span className="text-4xl">📚</span>
+                                    </div>
+                                  )}
+                                  {selectedTheme === theme.id && (
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                      <span className="text-white font-bold text-sm bg-black/40 px-2 py-1 rounded">Dipilih</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))
-                )}
-                {/* Upload Own Theme */}
-                <div
-                  onClick={() => coverImageInputRef.current?.click()}
-                  className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group ${
-                    selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
-                  }`}
-                >
-                  <input
-                    type="file"
-                    ref={coverImageInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, "image")}
-                  />
-                  {form.watch("coverImage") && selectedTheme === "custom" ? (
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={form.watch("coverImage") || ""}
-                        alt="Custom Cover"
-                        fill
-                        className="object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <span className="text-white font-bold text-[10px] bg-black/40 px-2 py-1 rounded">
-                          Terganti
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        {isUploading ? (
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Upload size={20} />
-                        )}
-                      </div>
-                      <span className="text-[10px] md:text-xs font-bold text-[#5d4037] text-center px-2">
-                        {isUploading ? "Uploading..." : "Upload Gambar Sendiri"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[#5d4037] font-bold text-lg">Judul Kuis</FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#4e342e]" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="musicFile"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[#5d4037] font-bold text-lg">Musik</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Pilih file musik..."
-                          className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                        {/* Upload Own Theme - Fixed beside theme list */}
+                        <div
+                          onClick={() => coverImageInputRef.current?.click()}
+                          className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                            selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
+                          }`}
+                        >
+                          <input
+                            type="file"
+                            ref={coverImageInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleFileUpload(e, "image")}
+                          />
+                          {form.watch("coverImage") && selectedTheme === "custom" && form.watch("coverImage")?.trim() !== "" ? (
+                            <div className="relative w-full h-full">
+                              <Image
+                                src={form.watch("coverImage") || ""}
+                                alt="Custom Cover"
+                                fill
+                                className="object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                <span className="text-white font-bold text-[10px] bg-black/40 px-2 py-1 rounded">
+                                  Terganti
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                                {isUploading ? (
+                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Upload size={20} />
+                                )}
+                              </div>
+                              <span className="text-[10px] md:text-xs font-bold text-[#5d4037] text-center px-2">
+                                {isUploading ? "Uploading..." : "Upload Gambar Sendiri"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quiz Details Section */}
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#5d4037] font-bold text-lg">Judul Kuis</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
+                                  className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#4e342e]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <input
-                        type="file"
-                        ref={musicFileInputRef}
-                        className="hidden"
-                        accept="audio/*"
-                        onChange={(e) => handleFileUpload(e, "audio")}
+
+                        <FormField
+                          control={form.control}
+                          name="musicFile"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#5d4037] font-bold text-lg">Musik</FormLabel>
+                              <div className="relative">
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Naik Odong Odong.mp3"
+                                    className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                                  />
+                                </FormControl>
+                                <input
+                                  type="file"
+                                  ref={musicFileInputRef}
+                                  className="hidden"
+                                  accept="audio/*"
+                                  onChange={(e) => handleFileUpload(e, "music")}
+                                />
+                                <div
+                                  onClick={() => musicFileInputRef.current?.click()}
+                                  className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                >
+                                  {isUploading ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Upload size={20} />
+                                  )}
+                                </div>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="instructions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[#5d4037] font-bold text-lg">Instruksi Kuis</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
+                                className="bg-white/80 border-[#d7ccc8] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#4e342e] resize-none p-4"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                      <div
-                        onClick={() => musicFileInputRef.current?.click()}
-                        className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className="flex justify-end pt-4">
+                      <Button
+                        type="submit"
+                        disabled={isActionLoading}
+                        className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                       >
-                        {isUploading ? (
+                        {isActionLoading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <Upload size={20} />
+                          <Save size={20} />
                         )}
-                      </div>
+                        {isActionLoading ? "Memperbarui..." : "Perbarui Kuis"}
+                      </Button>
                     </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </div>
+                </form>
+              </Form>
             </div>
-
-            <FormField
-              control={form.control}
-              name="instructions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[#5d4037] font-bold text-lg">Instruksi Kuis</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} className="bg-white/80 border-[#d7ccc8] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#4e342e] resize-none p-4" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end pt-4">
-              <Button
-                type="submit"
-                disabled={isActionLoading}
-                className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
-              >
-                {isActionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
-                {isActionLoading ? "Memperbarui..." : "Perbarui Kuis"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          </div>
+        </div>
       </div>
 
+      {/* Back Button */}
       <Link href="/host" className="fixed top-6 left-6 z-50 w-12 h-12 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all">
         <ChevronLeft size={24} />
       </Link>
+
+      {/* Settings/Volume Button */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
+          <svg className="w-6 h-6 md:w-7 md:h-7 text-amber-700 group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.983 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(120, 53, 15, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(120, 53, 15, 0.3);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(120, 53, 15, 0.5);
+        }
+      `}</style>
     </div>
   );
 }

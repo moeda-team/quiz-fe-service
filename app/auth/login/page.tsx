@@ -110,7 +110,7 @@ function LoginPageInner() {
                 {/* Title */}
                 <div className="text-center mb-2 sm:mb-3">
                   <h2 className="text-sm lg:text-xl sm:text-2xl font-bold text-amber-900 m-2" style={{ fontFamily: 'serif' }}>
-                    Selamat Datang di PANDAI KUIS
+                    Selamat Datang di Empat Rima
                   </h2>
                   <div className="relative w-full h-16 sm:h-20 md:h-24">
                     <Image

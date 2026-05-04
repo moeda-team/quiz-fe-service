@@ -89,7 +89,7 @@ export default function DashboardAdminPage() {
               className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
             >
-              PANDAI KUIS
+              Empat Rima
             </div>
           </div>
         </header>
