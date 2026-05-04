@@ -13,7 +13,7 @@ interface UploadResponse {
   };
 }
 
-export type UploadCategory = "image" | "audio" | "video" | "document";
+export type UploadCategory = "image" | "audio" | "music" | "video" | "document";
 export type UploadContext = "theme" | "quiz" | "question" | "user";
 
 export function useFileUpload() {

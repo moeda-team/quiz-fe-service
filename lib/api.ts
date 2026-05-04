@@ -1,6 +1,22 @@
 // lib/api.ts
 import { getSession } from "next-auth/react";
 
+interface QuestionData {
+  quizId: string;
+  order: number;
+  text: string;
+  type: "TRUE_FALSE" | "MULTIPLE_CHOICE" | "ESSAY" | "PUZZLE";
+  timeLimit?: number;
+  imageUrl?: string;
+  musicFile?: string;
+  correctAnswer?: string;
+  answers?: Array<{
+    text: string;
+    isCorrect: boolean;
+    points: number;
+  }>;
+}
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api-quiz.hompimpa.biz.id";
 
 const username = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME || '';
@@ -159,4 +175,25 @@ export async function apiDelete<T>(
   }
 
   return res.json() as Promise<T>;
+}
+
+// Question API functions
+export async function createQuestion(questionData: QuestionData): Promise<QuestionData> {
+  return apiPost("/questions", questionData);
+}
+
+export async function getQuestions(quizId: string): Promise<QuestionData[]> {
+  return apiGet(`/questions?quizId=${quizId}`);
+}
+
+export async function getQuestionById(id: string): Promise<QuestionData> {
+  return apiGet(`/questions/${id}`);
+}
+
+export async function updateQuestion(id: string, questionData: Partial<QuestionData>): Promise<QuestionData> {
+  return apiPut(`/questions/${id}`, questionData);
+}
+
+export async function deleteQuestion(id: string): Promise<void> {
+  return apiDelete(`/questions/${id}`);
 }
