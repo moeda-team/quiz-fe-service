@@ -1,11 +1,12 @@
 "use client";
 
 import { toast } from "sonner";
+import Swal from 'sweetalert2';
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Upload, Save, ChevronLeft, Loader2 } from "lucide-react";
+import { Upload, Save, ChevronLeft, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,13 +40,14 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useThemes } from "@/hooks/useThemes";
 import { useRef } from "react";
 import { Plus } from "lucide-react";
-import { Question } from "@/hooks/useQuestions";
+import { Question, useQuestions } from "@/hooks/useQuestions";
 
 
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
   const { getQuizById, updateQuiz, isLoading: isActionLoading } = useQuizzes();
+  const { deleteQuestion } = useQuestions();
   const { uploadFile, isUploading } = useFileUpload();
   const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
@@ -181,10 +183,35 @@ export default function EditQuizPage() {
     }
   };
 
+  const handleDeleteQuestion = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Soal?',
+      text: 'Soal yang dihapus tidak dapat dikembalikan lagi!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteQuestion(params.id as string, id);
+        const newQuestions = questions.filter(q => q.id !== id);
+        setQuestions(newQuestions);
+        toast.success("Soal berhasil dihapus");
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        toast.error("Gagal menghapus soal: " + errorMessage);
+      }
+    }
+  };
+
   if (isPageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fdf6e9]">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-2">
           <Loader2 className="w-12 h-12 text-amber-700 animate-spin" />
           <p className="text-amber-900 font-bold">Memuat data kuis...</p>
         </div>
@@ -222,7 +249,7 @@ export default function EditQuizPage() {
         {/* Content Section */}
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
 
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
+          <div className="flex flex-col lg:flex-row gap-2 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
               className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
@@ -236,27 +263,27 @@ export default function EditQuizPage() {
               {/* form edit */}
               {currentMode === 'edit' ? (
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-4 flex flex-col">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col">
                   {/* Section Header */}
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-4">
-                      <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
+                    <div className="flex items-center gap-2 md:gap-2">
+                      <Image src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                       <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
                         EDIT KUIS
                       </div>
-                      <img src="/images/icon-title-r.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                      <Image src="/images/icon-title-r.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                     </div>
                   </div>
 
                   {/* Form Content Scroll Area */}
-                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-4">
+                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-2">
                     {/* Theme Selection Section */}
                     <div className="space-y-4">
                       <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
                       <div className="flex gap-6">
                         {/* Theme List */}
                         <div className="overflow-x-auto pb-4 flex-1">
-                          <div className="flex gap-4 min-w-max p-1 px-2">
+                          <div className="flex gap-2 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
                                 <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
@@ -462,11 +489,17 @@ export default function EditQuizPage() {
                 // Buat Soal Form - 3-6-3 Column Layout
                 <div className="flex-1 grid grid-cols-12 gap-6">
                   {/* Section 1 - Questions List */}
-                  <div className="col-span-3 space-y-3 max-h-screen overflow-y-auto pr-2 border-r-2">
+                  <div className="col-span-2 space-y-3 max-h-screen overflow-y-auto pr-2 border-r-2">
                     <div className="space-y-2">
                       {questions.map((question, index) => (
-                        <div key={question.id} className="bg-[#f5f5f5] rounded-lg p-3 border border-[#d4c8c0]">
-                          <p className="text-sm font-medium text-[#8b6056]">{index + 1}. {question.text}</p>
+                        <div key={index} className="bg-[#f5f5f5] relative rounded-lg p-3 border border-[#d4c8c0] min-h-16 flex items-center w-full justify-center">
+                          <Image src={question.imageUrl ? question.imageUrl : '/file.svg'} alt="Question" width={20} height={20} />
+                          <button
+                            onClick={() => handleDeleteQuestion(question.id)}
+                            className="rounded-sm cursor-pointer bg-red-500/20 absolute right-2 top-2 transition-opacity text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       ))}
 
@@ -476,8 +509,8 @@ export default function EditQuizPage() {
                         </div>
                       )}
                     </div>
-                    <button className="w-full flex gap-2 items-center justify-center cursor-pointer bg-[#8d6e63] hover:bg-[#6d4c41] text-white rounded-sm p-2 font-bold transition-colors">
-                      <Plus /> Tambah Soal
+                    <button className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#8d6e63] hover:bg-[#6d4c41] text-white rounded-sm p-2 font-bold transition-colors">
+                      <Plus size={16}/> Tambah Soal
                     </button>
                   </div>
 
@@ -494,7 +527,7 @@ export default function EditQuizPage() {
                   </div>
 
                   {/* Section 3 - Settings & Answer Cards */}
-                  <div className="col-span-3 space-y-6 max-h-screen overflow-y-auto pl-2 border-l-2">
+                  <div className="col-span-4 space-y-6 max-h-screen overflow-y-auto pl-2 border-l-2">
                     {/* Settings Section */}
                     <div className="bg-white/90 border-2 border-[#8b6056] rounded-2xl p-6">
                       <div className="space-y-4">

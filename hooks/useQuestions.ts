@@ -35,7 +35,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiGet<Question[]>(`/quizzes/${quizId}/questions`);
+      const response = await apiGet<Question[]>(`/questions`);
       return (response as ApiResponse<Question[]>).data || response;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal mengambil data soal";
@@ -51,7 +51,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiPost(`/quizzes/${quizId}/questions`, data);
+      const response = await apiPost(`/questions`, data);
       return response;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal membuat soal";
@@ -67,7 +67,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiPut(`/quizzes/${quizId}/questions/${questionId}`, data);
+      const response = await apiPut(`/questions/${questionId}`, data);
       return response;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal memperbarui soal";
@@ -83,7 +83,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      await apiDelete(`/quizzes/${quizId}/questions/${questionId}`);
+      await apiDelete(`/questions/${questionId}`);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal menghapus soal";
       console.error("Failed to delete question:", err);
@@ -98,7 +98,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiGet<Question>(`/quizzes/${quizId}/questions/${questionId}`);
+      const response = await apiGet<Question>(`/questions/${questionId}`);
       return (response as ApiResponse<Question>).data || response;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal mengambil detail soal";
