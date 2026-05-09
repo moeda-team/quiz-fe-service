@@ -10,6 +10,7 @@ interface UploadResponse {
   message: string;
   data: {
     url: string;
+    fileUrl: string;
     id: string;
     [key: string]: unknown;
   };
@@ -62,7 +63,7 @@ export function useFileUpload() {
         const data = await response.json();
         return data as UploadResponse;
       } catch (err: ErrorType) {
-        const message = err.message || "Failed to upload file";
+        const message = getErrorMessage(err) || "Failed to upload file";
         setError(message);
         throw new Error(message);
       } finally {

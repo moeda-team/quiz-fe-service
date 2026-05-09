@@ -122,9 +122,11 @@ export default function CreateQuizPage() {
   const onSubmit = async (data: QuizFormValues) => {
     try {
       const payload = {
-        ...data,
-        themeId: selectedTheme === "custom" ? "1a0206aa-72b6-4c83-b258-3a8c4bce9b1c" : data.themeId,
+        title: data.title,
+        description: data.instructions,
         coverImage: data.coverImage,
+        questions: [], // Empty array for new quiz
+        isPublished: false,
       };
 
       await createQuiz(payload);

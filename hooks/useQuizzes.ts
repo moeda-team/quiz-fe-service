@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
 import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
-import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse } from "@/types/quiz";
+import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
@@ -69,12 +69,20 @@ export function useQuizzes(searchQuery: string = "") {
 
   // Initial fetch and search
   useEffect(() => {
-    const currentPage = page;
-    if (currentPage !== 1) {
-      setPage(1);
-    }
-    fetchQuizzes(1, searchQuery, false);
-  }, [searchQuery]);
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchQuizzes(1, searchQuery, false);
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [searchQuery, fetchQuizzes]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoading || isFetchingMore) return;
@@ -83,7 +91,7 @@ export function useQuizzes(searchQuery: string = "") {
     fetchQuizzes(nextPage, searchQuery, true);
   }, [hasMore, isLoading, isFetchingMore, page, searchQuery, fetchQuizzes]);
 
-  const createQuiz = useCallback(async (data: CreateData<QuizType>) => {
+  const createQuiz = useCallback(async (data: QuizCreateData) => {
     try {
       setIsLoading(true);
       setError(null);
