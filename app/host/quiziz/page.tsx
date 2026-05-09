@@ -50,7 +50,7 @@ export default function DashboardAdminPage() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"

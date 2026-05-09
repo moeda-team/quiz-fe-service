@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import { Eye, EyeOff } from "lucide-react";
@@ -29,6 +29,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +63,7 @@ function LoginPageInner() {
       }
 
       // Redirect to dashboard on successful login
-      window.location.href = "/auth/redirect";
+      router.push(callbackUrl);
     } catch {
       setErrorMsg("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
@@ -84,7 +85,7 @@ function LoginPageInner() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -98,7 +99,7 @@ function LoginPageInner() {
             {/* Card Background */}
             <div className="relative w-full max-w-[650px] mx-auto h-auto">
               <Image
-                src="/images/login/card.svg"
+                src="/images/login/card.webp"
                 alt="Login Card"
                 width={800}
                 height={900}
@@ -189,11 +190,12 @@ function LoginPageInner() {
                       disabled={isSubmitting}
                     >
                       <Image
-                        src="/images/login/btn-login.svg"
+                        src="/images/login/btn-login.webp"
                         alt="Login Button"
                         fill
                         className="object-contain"
                       />
+                      Masuk
                     </Button>
                   </form>
                 </Form>

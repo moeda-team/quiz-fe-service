@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -37,6 +38,9 @@ import { useQuizzes } from "@/hooks/useQuizzes";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useThemes } from "@/hooks/useThemes";
 import { useRef } from "react";
+import { Plus } from "lucide-react";
+import { Question } from "@/hooks/useQuestions";
+
 
 export default function EditQuizPage() {
   const params = useParams();
@@ -46,6 +50,8 @@ export default function EditQuizPage() {
   const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [currentMode, setCurrentMode] = useState<'edit' | 'buat_soal'>('edit');
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const musicFileInputRef = useRef<HTMLInputElement>(null);
@@ -61,12 +67,19 @@ export default function EditQuizPage() {
     },
   });
 
+  const coverImageValue = useWatch({ control: form.control, name: "coverImage" });
+
   useEffect(() => {
     const fetchQuiz = async () => {
       if (!params.id || themes.length === 0) return;
       try {
         const response = await getQuizById(params.id as string);
         const quizData = response.data || response;
+        
+        // Set questions state
+        if (quizData.questions && Array.isArray(quizData.questions)) {
+          setQuestions(quizData.questions);
+        }
 
         // Map API response to form values
         const themeId = quizData.themeId || quizData.theme_id || "";
@@ -97,9 +110,10 @@ export default function EditQuizPage() {
   useEffect(() => {
     if (themes.length > 0 && !selectedTheme && !isPageLoading) {
       const defaultTheme = themes[0];
-      setSelectedTheme(defaultTheme.id);
       form.setValue("themeId", defaultTheme.id);
       form.setValue("coverImage", defaultTheme.imageUrl);
+      // Use setTimeout to defer state update and avoid cascading renders
+      setTimeout(() => setSelectedTheme(defaultTheme.id), 0);
     }
   }, [themes, selectedTheme, form, isPageLoading]);
 
@@ -183,7 +197,7 @@ export default function EditQuizPage() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -206,11 +220,7 @@ export default function EditQuizPage() {
         </header>
 
         {/* Content Section */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0">
-          {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
-            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
-          </div>
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
 
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
@@ -223,8 +233,10 @@ export default function EditQuizPage() {
                 fontFamily: 'Varela Round'
               }}
             >
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-4 flex flex-col">
+              {/* form edit */}
+              {currentMode === 'edit' ? (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-4 flex flex-col">
                   {/* Section Header */}
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
                     <div className="flex items-center gap-2 md:gap-4">
@@ -305,10 +317,10 @@ export default function EditQuizPage() {
                             accept="image/*"
                             onChange={(e) => handleFileUpload(e, "image")}
                           />
-                          {form.watch("coverImage") && selectedTheme === "custom" && form.watch("coverImage")?.trim() !== "" ? (
+                          {coverImageValue && selectedTheme === "custom" && coverImageValue?.trim() !== "" ? (
                             <div className="relative w-full h-full">
                               <Image
-                                src={form.watch("coverImage") || ""}
+                                src={coverImageValue || ""}
                                 alt="Custom Cover"
                                 fill
                                 className="object-cover rounded-lg"
@@ -353,7 +365,7 @@ export default function EditQuizPage() {
                                 <Input
                                   {...field}
                                   placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
-                                  className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#4e342e]"
+                                  className="bg-white/80 border-[#8b6056] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#8b6056]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -372,7 +384,7 @@ export default function EditQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                                    className="bg-white/80 border-[#8b6056] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#8b6056]"
                                   />
                                 </FormControl>
                                 <input
@@ -409,7 +421,7 @@ export default function EditQuizPage() {
                               <Textarea
                                 {...field}
                                 placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
-                                className="bg-white/80 border-[#d7ccc8] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#4e342e] resize-none p-4"
+                                className="bg-white/80 border-[#8b6056] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#8b6056] resize-none p-4"
                               />
                             </FormControl>
                             <FormMessage />
@@ -419,7 +431,7 @@ export default function EditQuizPage() {
                     </div>
 
                     {/* Footer Buttons */}
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end pt-4 gap-2">
                       <Button
                         type="submit"
                         disabled={isActionLoading}
@@ -432,10 +444,107 @@ export default function EditQuizPage() {
                         )}
                         {isActionLoading ? "Memperbarui..." : "Perbarui Kuis"}
                       </Button>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setCurrentMode('buat_soal');
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-6 rounded-xl text-lg font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                      >
+                        <Plus size={20} />
+                        Buat Soal
+                      </Button>
                     </div>
                   </div>
-                </form>
-              </Form>
+                  </form>
+                </Form>
+              ) : (
+                // Buat Soal Form - 3-6-3 Column Layout
+                <div className="flex-1 grid grid-cols-12 gap-6">
+                  {/* Section 1 - Questions List */}
+                  <div className="col-span-3 space-y-3 max-h-screen overflow-y-auto pr-2 border-r-2">
+                    <div className="space-y-2">
+                      {questions.map((question, index) => (
+                        <div key={question.id} className="bg-[#f5f5f5] rounded-lg p-3 border border-[#d4c8c0]">
+                          <p className="text-sm font-medium text-[#8b6056]">{index + 1}. {question.text}</p>
+                        </div>
+                      ))}
+
+                      {questions.length === 0 && (
+                        <div className="text-center text-gray-500 py-10 border-2 rounded-xl">
+                          <p>Belum ada soal</p>
+                        </div>
+                      )}
+                    </div>
+                    <button className="w-full flex gap-2 items-center justify-center cursor-pointer bg-[#8d6e63] hover:bg-[#6d4c41] text-white rounded-sm p-2 font-bold transition-colors">
+                      <Plus /> Tambah Soal
+                    </button>
+                  </div>
+
+                  {/* Section 2 - Question Input & Image Upload */}
+                  <div className="col-span-6 space-y-6 max-h-screen overflow-y-auto pr-2">
+                    {/* form input question */}
+                    <div>
+                      <input 
+                        type="text" 
+                        className="w-full bg-white border-[#8b6056] border-2 rounded-md h-10 px-3 text-[#8b6056]" 
+                        placeholder="Tulis soal anda"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Section 3 - Settings & Answer Cards */}
+                  <div className="col-span-3 space-y-6 max-h-screen overflow-y-auto pl-2 border-l-2">
+                    {/* Settings Section */}
+                    <div className="bg-white/90 border-2 border-[#8b6056] rounded-2xl p-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[#5d4037] font-bold mb-2">Tipe soal</label>
+                          <select className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 text-[#8b6056]">
+                            <option>Benar atau Salah</option>
+                            <option>Pilihan Ganda</option>
+                            <option>Essay</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[#5d4037] font-bold mb-2">Waktu</label>
+                          <select className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 text-[#8b6056]">
+                            <option>10 Detik</option>
+                            <option>20 Detik</option>
+                            <option>30 Detik</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[#5d4037] font-bold mb-2">Musik</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value="Default by Tema"
+                              readOnly
+                              className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 pr-10 text-[#8b6056]"
+                            />
+                            <button className="absolute right-2 top-2 text-[#8d6e63] hover:text-[#5d4037]">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex justify-end">
+                      <button className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-3 rounded-xl font-bold transition-colors">
+                        Simpan Kuis
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* form-question */}
+
             </div>
           </div>
         </div>

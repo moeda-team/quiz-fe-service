@@ -141,7 +141,7 @@ export default function CreateQuizPage() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -164,11 +164,7 @@ export default function CreateQuizPage() {
         </header>
 
         {/* Content Section */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0">
-          {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
-            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
-          </div>
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
 
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
