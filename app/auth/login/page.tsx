@@ -99,7 +99,7 @@ function LoginPageInner() {
             {/* Card Background */}
             <div className="relative w-full max-w-[650px] mx-auto h-auto">
               <Image
-                src="/images/login/card.webp"
+                src="/images/login/card-login.webp"
                 alt="Login Card"
                 width={800}
                 height={900}
@@ -186,7 +186,7 @@ function LoginPageInner() {
 
                     <Button
                       type="submit"
-                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full sm:h-14 md:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full sm:h-14 md:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold"
                       disabled={isSubmitting}
                     >
                       <Image
@@ -195,7 +195,7 @@ function LoginPageInner() {
                         fill
                         className="object-contain"
                       />
-                      Masuk
+                      <span className="relative z-10">Masuk</span>
                     </Button>
                   </form>
                 </Form>
