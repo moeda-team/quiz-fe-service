@@ -40,7 +40,7 @@ export function useQuizzes(searchQuery: string = "") {
       setError(null);
 
       // Construct URL with params
-      let url = `/quizzes?page=${pageNum}&limit=10`;
+      let url = `/quizzes?page=${pageNum}&limit=6`;
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
@@ -63,8 +63,8 @@ export function useQuizzes(searchQuery: string = "") {
 
       // Check if there's more data
       // If the API returns meta.hasMore or similar, use it. 
-      // Otherwise, assume more if we got 10 items.
-      const hasMoreData = mappedData.length === 10;
+      // Otherwise, assume more if we got 6 items.
+      const hasMoreData = mappedData.length === 6;
       setHasMore(hasMoreData);
 
     } catch (err: ErrorType) {

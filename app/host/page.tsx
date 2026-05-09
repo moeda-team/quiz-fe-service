@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, Loader2, Trash2, Edit2, AlertTriangle } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import { toast } from "sonner";
 import {
@@ -25,6 +25,34 @@ export default function DashboardAdminPage() {
   const [quizToDelete, setQuizToDelete] = useState<string | number | null>(null);
 
   const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, deleteQuiz } = useQuizzes(debouncedSearch);
+
+  // Intersection Observer for infinite scroll
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const target = entries[0];
+    if (target.isIntersecting && hasMore && !isLoading && !isFetchingMore) {
+      loadMore();
+    }
+  }, [hasMore, isLoading, isFetchingMore, loadMore]);
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: '100px'
+    });
+
+    if (observerTarget.current) {
+      observerRef.current.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [handleObserver]);
 
   const handleDeleteQuiz = async (id: string | number) => {
     try {
@@ -47,26 +75,6 @@ export default function DashboardAdminPage() {
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/auth/login" });
   };
-
-  // Intersection Observer for Infinite Scroll
-  const observerTarget = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasMore && !isFetchingMore && !isLoading) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, isFetchingMore, isLoading, loadMore]);
 
   return (
     <div className="h-screen relative overflow-hidden flex flex-col">
@@ -130,7 +138,7 @@ export default function DashboardAdminPage() {
             <img src="/images/people.svg" alt="people" className="h-full object-contain" />
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0">
             {/* Main Card List */}
             <div
               className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
@@ -243,9 +251,16 @@ export default function DashboardAdminPage() {
                           <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
                         </div>
                       ) : hasMore ? (
-                        <div className="h-4" /> // Spacer for observer
+                        <div className="flex justify-center py-4">
+                          <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full border border-amber-200 shadow-sm">
+                            <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
+                            <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
+                          </div>
+                        </div>
                       ) : quizzes.length > 0 ? (
-                        <div className="text-amber-700/60 text-sm font-medium">Sudah semua kuis dimuat ✨</div>
+                        <div className="text-center py-4">
+                          <div className="text-amber-700/60 text-sm font-medium">Sudah semua kuis dimuat ✨</div>
+                        </div>
                       ) : null}
                     </div>
                   </>
