@@ -30,8 +30,6 @@ export function useQuizzes(searchQuery: string = "") {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
   const fetchQuizzes = useCallback(async (pageNum: number, search: string, append: boolean = false) => {
     try {
       if (append) setIsFetchingMore(true);
@@ -40,7 +38,7 @@ export function useQuizzes(searchQuery: string = "") {
       setError(null);
 
       // Construct URL with params
-      let url = `/quizzes?page=${pageNum}&limit=6`;
+      let url = `/quizzes?page=${pageNum}&limit=8`;
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
@@ -63,8 +61,8 @@ export function useQuizzes(searchQuery: string = "") {
 
       // Check if there's more data
       // If the API returns meta.hasMore or similar, use it. 
-      // Otherwise, assume more if we got 6 items.
-      const hasMoreData = mappedData.length === 6;
+      // Otherwise, assume more if we got 8 items.
+      const hasMoreData = mappedData.length === 8;
       setHasMore(hasMoreData);
 
     } catch (err: ErrorType) {
