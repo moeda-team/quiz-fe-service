@@ -30,8 +30,9 @@ export default function DashboardAdminPage() {
     try {
       await deleteQuiz(id);
       toast.success("Kuis berhasil dihapus");
-    } catch (err: any) {
-      toast.error("Gagal menghapus kuis: " + err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      toast.error("Gagal menghapus kuis: " + errorMessage);
     }
   };
 

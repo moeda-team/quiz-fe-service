@@ -34,7 +34,7 @@ type QuizFormValues = z.infer<typeof quizSchema>;
 
 // Themes are now fetched from useThemes hook
 
-import { useQuizzes } from "@/hooks/useQuizzes";
+import { useQuizzes, Quiz } from "@/hooks/useQuizzes";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useThemes } from "@/hooks/useThemes";
 import { useRef } from "react";
@@ -74,11 +74,11 @@ export default function EditQuizPage() {
       if (!params.id || themes.length === 0) return;
       try {
         const response = await getQuizById(params.id as string);
-        const quizData = response.data || response;
+        const quizData: Quiz = ('data' in response && response.data) ? response.data : response as Quiz;
         
         // Set questions state
         if (quizData.questions && Array.isArray(quizData.questions)) {
-          setQuestions(quizData.questions);
+          setQuestions(quizData.questions as Question[]);
         }
 
         // Map API response to form values

@@ -8,9 +8,18 @@ import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, Q
 export interface Quiz {
   id: string | number;
   title: string;
+  name?: string;
   questions: number | QuizQuestion[];
   author?: string;
   coverImage?: string;
+  image?: string;
+  cover_image?: string;
+  description?: string;
+  instructions?: string;
+  musicFile?: string;
+  music_file?: string;
+  themeId?: string;
+  theme_id?: string;
 }
 
 export function useQuizzes(searchQuery: string = "") {
@@ -155,7 +164,7 @@ export function useQuizzes(searchQuery: string = "") {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiGet<Quiz>(`/quizzes/${id}`);
+      const response = await apiGet<{ data?: Quiz } | Quiz>(`/quizzes/${id}`);
       return response;
     } catch (err: ErrorType) {
       console.error("Failed to fetch quiz details:", err);
