@@ -171,7 +171,7 @@ export default function CreateQuizPage() {
             <div
               className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
-                backgroundImage: 'url(/images/bg-card-list.svg)',
+                backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 fontFamily: 'Varela Round'

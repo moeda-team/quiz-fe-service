@@ -76,7 +76,7 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const data: any = await res.json();
+          const data: { access_token?: string; accessToken?: string; token?: string; data?: { id: string; name: string; email: string; role: string; access_token?: string; token?: string } } = await res.json();
           console.log("[AUTH] Login Response Data:", data);
 
           // Pastikan kita mengambil token dari tempat yang benar
@@ -87,11 +87,11 @@ export const authOptions: NextAuthOptions = {
           }
 
           const appUser: AppUser = {
-            id: data.data.id,
-            name: data.data.name,
-            email: data.data.email,
-            role: data.data.role,
-            access_token: access_token,
+            id: data.data?.id || '',
+            name: data.data?.name || '',
+            email: data.data?.email || '',
+            role: (data.data?.role as UserRole) || 'student',
+            access_token: access_token || '',
           };
 
           return appUser;

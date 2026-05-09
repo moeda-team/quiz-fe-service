@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
+import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
+import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
   title: string;
-  questions: number | any[];
+  questions: number | QuizQuestion[];
   author?: string;
   coverImage?: string;
 }
@@ -34,18 +36,18 @@ export function useQuizzes(searchQuery: string = "") {
         url += `&search=${encodeURIComponent(search)}`;
       }
 
-      const response = await apiGet<{ data: any[], meta?: any }>(url);
+      const response = await apiGet<PaginatedResponse<QuizDynamicResponse>>(url);
 
-      const mappedData = response.data.map((item: any) => ({
+      const mappedData = response.data.map((item: QuizDynamicResponse) => ({
         id: item.id,
-        title: item.title || item.name,
+        title: item.title || item.name || "",
         questions: Array.isArray(item.questions) ? item.questions.length : (item.total_questions || 0),
         author: item.author || item.creator?.name || "Admin",
         coverImage: item.coverImage || item.image || "/images/bali-culture.jpg",
       }));
 
       if (append) {
-        setQuizzes(prev => [...prev, ...mappedData]);
+        setQuizzes((prev: Quiz[]) => [...prev, ...mappedData]);
       } else {
         setQuizzes(mappedData);
       }
@@ -56,9 +58,9 @@ export function useQuizzes(searchQuery: string = "") {
       const hasMoreData = mappedData.length === 10;
       setHasMore(hasMoreData);
 
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to fetch quizzes:", err);
-      setError(err.message || "Gagal mengambil data kuis");
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
       setIsFetchingMore(false);
@@ -67,9 +69,12 @@ export function useQuizzes(searchQuery: string = "") {
 
   // Initial fetch and search
   useEffect(() => {
-    setPage(1);
+    const currentPage = page;
+    if (currentPage !== 1) {
+      setPage(1);
+    }
     fetchQuizzes(1, searchQuery, false);
-  }, [searchQuery, fetchQuizzes]);
+  }, [searchQuery]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoading || isFetchingMore) return;
@@ -78,30 +83,30 @@ export function useQuizzes(searchQuery: string = "") {
     fetchQuizzes(nextPage, searchQuery, true);
   }, [hasMore, isLoading, isFetchingMore, page, searchQuery, fetchQuizzes]);
 
-  const createQuiz = useCallback(async (data: any) => {
+  const createQuiz = useCallback(async (data: CreateData<QuizType>) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPost("/quizzes", data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to create quiz:", err);
-      setError(err.message || "Gagal membuat kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const updateQuiz = useCallback(async (id: string | number, data: any) => {
+  const updateQuiz = useCallback(async (id: string | number, data: UpdateData<QuizType>) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPatch(`/quizzes/${id}`, data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to update quiz:", err);
-      setError(err.message || "Gagal memperbarui kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -113,25 +118,25 @@ export function useQuizzes(searchQuery: string = "") {
       setIsLoading(true);
       setError(null);
       await apiDelete(`/quizzes/${id}`);
-      setQuizzes(prev => prev.filter(q => q.id !== id));
-    } catch (err: any) {
+      setQuizzes((prev: Quiz[]) => prev.filter((q: Quiz) => q.id !== id));
+    } catch (err: ErrorType) {
       console.error("Failed to delete quiz:", err);
-      setError(err.message || "Gagal menghapus kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const patchQuiz = useCallback(async (id: string | number, data: any) => {
+  const patchQuiz = useCallback(async (id: string | number, data: UpdateData<QuizType>) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPatch(`/quizzes/${id}`, data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to patch quiz:", err);
-      setError(err.message || "Gagal memperbarui kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -142,11 +147,11 @@ export function useQuizzes(searchQuery: string = "") {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiGet<any>(`/quizzes/${id}`);
+      const response = await apiGet<Quiz>(`/quizzes/${id}`);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to fetch quiz details:", err);
-      setError(err.message || "Gagal mengambil detail kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
