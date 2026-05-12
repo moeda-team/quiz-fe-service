@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-gray-50 border-gray-200"
+                    className="bg-gray-50 border-[#C9750A]"
                   />
                 </div>
 
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
                   <span className="text-gray-900">{email}</span>
                 </p>
 
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                <div className="bg-blue-50 border-[#C9750A] rounded-lg p-4 mb-6">
                   <p className="text-sm text-gray-700">
                     Didn&apos;t receive the email? Check your spam folder or{" "}
                     <button

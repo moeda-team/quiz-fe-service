@@ -132,7 +132,7 @@ function LoginPageInner() {
                 </div>
 
                 {errorMsg && (
-                  <div className="bg-red-50/90 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+                  <div className="bg-red-50/90 border border-[#C9750A] text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
                     {errorMsg}
                   </div>
                 )}
@@ -148,7 +148,7 @@ function LoginPageInner() {
                             <Input
                               {...field}
                               type="email"
-                              className="bg-transparent border border-amber-700 rounded-lg px-3 py-2"
+                              className="bg-transparent border border-[#C9750A] rounded-lg px-3 py-2"
                               autoComplete="email"
                             />
                           </FormControl>

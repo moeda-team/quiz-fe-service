@@ -111,7 +111,7 @@ export default function DashboardAdminPage() {
             <input
               type="text"
               placeholder="Ketik disini untuk mencari kuis..."
-              className="w-full py-3 md:py-4 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-amber-700/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-amber-700 shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
+              className="w-full py-3 md:py-4 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-[#C9750A]/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-[#C9750A] shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -167,7 +167,7 @@ export default function DashboardAdminPage() {
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
-                    <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-16 h-16 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
                     <p className="text-amber-900 font-bold animate-pulse">Memuat kuis seru...</p>
                   </div>
                 ) : error ? (
@@ -194,7 +194,7 @@ export default function DashboardAdminPage() {
                       {quizzes.map((quiz, index) => (
                         <div
                           key={`${quiz.id}-${index}`}
-                          className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-amber-200 hover:border-amber-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
+                          className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
                         >
                           <div className="aspect-video bg-linear-to-br from-amber-100 to-amber-300 flex items-center justify-center relative overflow-hidden">
                             {quiz.coverImage ? (
@@ -247,13 +247,13 @@ export default function DashboardAdminPage() {
                     {/* Infinite Scroll Trigger */}
                     <div ref={observerTarget} className="py-8 flex justify-center w-full">
                       {isFetchingMore ? (
-                        <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-amber-200 shadow-sm">
+                        <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-[#C9750A] shadow-sm">
                           <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
                           <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
                         </div>
                       ) : hasMore ? (
                         <div className="flex justify-center py-4">
-                          <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full border border-amber-200 shadow-sm">
+                          <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full border border-[#C9750A] shadow-sm">
                             <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
                             <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
                           </div>
@@ -290,7 +290,7 @@ export default function DashboardAdminPage() {
 
       {/* Settings/Volume Button */}
       <div className="fixed bottom-4 right-4 z-50">
-        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
+        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-#C9750A/20 hover:bg-white transition-all group active:scale-90">
           <svg className="w-6 h-6 md:w-7 md:h-7 text-amber-700 group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>

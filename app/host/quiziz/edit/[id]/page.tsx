@@ -3,7 +3,6 @@
 import { toast } from "sonner";
 import Swal from 'sweetalert2';
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Upload, Save, ChevronLeft, Loader2, Trash2 } from "lucide-react";
@@ -54,9 +53,14 @@ export default function EditQuizPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [currentMode, setCurrentMode] = useState<'edit' | 'buat_soal'>('edit');
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionImageUploading, setQuestionImageUploading] = useState(false);
+  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [buatSoalMusicUrl, setBuatSoalMusicUrl] = useState("");
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const musicFileInputRef = useRef<HTMLInputElement>(null);
+  const questionImageInputRef = useRef<HTMLInputElement>(null);
+  const buatSoalMusicFileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
@@ -121,48 +125,63 @@ export default function EditQuizPage() {
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "image" | "music"
+    type: "image" | "music" | "questionImage"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const category = type === "image" ? "image" : "music";
-      const context = "quiz";
+      if (type === "questionImage") {
+        setQuestionImageUploading(true);
+        // For question image, we don't need to create a theme
+        // Just handle the upload and store the URL in state
+        const response = await uploadFile(file, "image", "question");
+        if (response) {
+          toast.success("Gambar soal berhasil diupload!");
+          setQuestionImageUrl(response.data.fileUrl);
+        }
+        setQuestionImageUploading(false);
+      } else {
+        const category = type === "image" ? "image" : "music";
+        const context = "quiz";
 
-      const response = await uploadFile(file, category, context);
+        const response = await uploadFile(file, category, context);
 
-      if (response) {
-        if (type === "image") {
-          // Create a new theme in master data
-          try {
-            const newTheme = await addTheme({
-              name: `Tema Kustom ${new Date()}`,
-              imageUrl: response.data.fileUrl
-            });
-            
-            // Refresh themes to ensure new theme appears in UI
-            await refreshThemes();
-            
-            form.setValue("themeId", newTheme.id);
-            form.setValue("coverImage", response.data.fileUrl);
-            setSelectedTheme(newTheme.id);
-            toast.success("Tema kustom berhasil dibuat!");
-          } catch (err: unknown) {
-            // Fallback if theme creation fails but upload succeeded
-            const errorMessage = err instanceof Error ? err.message : "Unknown error";
-            form.setValue("coverImage", response.data.fileUrl);
-            setSelectedTheme("custom");
-            toast.error("Gagal mendaftarkan tema kustom: " + errorMessage);
+        if (response) {
+          if (type === "image") {
+            // Create a new theme in master data
+            try {
+              const newTheme = await addTheme({
+                name: `Tema Kustom ${new Date()}`,
+                imageUrl: response.data.fileUrl
+              });
+              
+              // Refresh themes to ensure new theme appears in UI
+              await refreshThemes();
+              
+              form.setValue("themeId", newTheme.id);
+              form.setValue("coverImage", response.data.fileUrl);
+              setSelectedTheme(newTheme.id);
+              toast.success("Tema kustom berhasil dibuat!");
+            } catch (err: unknown) {
+              // Fallback if theme creation fails but upload succeeded
+              const errorMessage = err instanceof Error ? err.message : "Unknown error";
+              form.setValue("coverImage", response.data.fileUrl);
+              setSelectedTheme("custom");
+              toast.error("Gagal mendaftarkan tema kustom: " + errorMessage);
+            }
+          } else {
+            form.setValue("musicFile", response.data.fileUrl);
+            toast.success("Musik berhasil diupload!");
           }
-        } else {
-          form.setValue("musicFile", response.data.fileUrl);
-          toast.success("Musik berhasil diupload!");
         }
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Gagal upload ${type}: ` + errorMessage);
+      if (type === "questionImage") {
+        setQuestionImageUploading(false);
+      }
     }
   };
 
@@ -208,6 +227,14 @@ export default function EditQuizPage() {
     }
   };
 
+  const handleEditQuestion = (id: string) => {
+    // Find the question by ID
+    const questionToEdit = questions.find(q => q.id === id);
+    if (questionToEdit) {
+      console.log(questionToEdit)
+    }
+  };
+
   if (isPageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fdf6e9]">
@@ -223,13 +250,11 @@ export default function EditQuizPage() {
     <div className="h-screen relative overflow-hidden flex flex-col">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image
+        <img
           src="/images/bg-main.webp"
           alt="Background"
-          fill
-          className="object-cover"
-          priority
-        />
+          className="w-full h-full object-cover"
+        />``
       </div>
 
       {/* Main Content */}
@@ -252,7 +277,7 @@ export default function EditQuizPage() {
           <div className="flex flex-col lg:flex-row gap-2 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
-              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
                 backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
@@ -263,15 +288,15 @@ export default function EditQuizPage() {
               {/* form edit */}
               {currentMode === 'edit' ? (
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col p-4 md:p-6">
                   {/* Section Header */}
                   <div className="flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
                     <div className="flex items-center gap-2 md:gap-2">
-                      <Image src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
+                      <img src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                       <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
                         EDIT KUIS
                       </div>
-                      <Image src="/images/icon-title-r.svg" alt="icon" width={32} height={32} className="animate-bounce" />
+                      <img src="/images/icon-title-r.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                     </div>
                   </div>
 
@@ -286,7 +311,7 @@ export default function EditQuizPage() {
                           <div className="flex gap-2 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
-                                <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-8 h-8 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
                               </div>
                             ) : (
                               themes.map((theme, index) => (
@@ -299,20 +324,15 @@ export default function EditQuizPage() {
                                   }}
                                   className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 w-48 flex-shrink-0 ${
                                     selectedTheme === theme.id 
-                                      ? "border-[#8d6e63] scale-105 shadow-lg" 
+                                      ? "border-[#C9750A] scale-105 shadow-lg" 
                                       : "border-transparent opacity-80 hover:opacity-100"
                                   }`}
                                 >
                                   {theme.imageUrl && theme.imageUrl.trim() !== "" ? (
-                                    <Image 
+                                    <img 
                                       src={theme.imageUrl} 
                                       alt={theme.name || `Tema ${theme.id}`} 
-                                      fill 
-                                      className="object-cover" 
-                                      loading="lazy" 
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
+                                      className="w-full h-full object-cover rounded-xl"
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-300 flex items-center justify-center">
@@ -333,8 +353,8 @@ export default function EditQuizPage() {
                         {/* Upload Own Theme - Fixed beside theme list */}
                         <div
                           onClick={() => coverImageInputRef.current?.click()}
-                          className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
-                            selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
+                          className={`aspect-video rounded-xl border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                            selectedTheme === "custom" ? "border-[#C9750A] bg-[#efebe9]" : ""
                           }`}
                         >
                           <input
@@ -346,14 +366,10 @@ export default function EditQuizPage() {
                           />
                           {coverImageValue && selectedTheme === "custom" && coverImageValue?.trim() !== "" ? (
                             <div className="relative w-full h-full">
-                              <Image
+                              <img
                                 src={coverImageValue || ""}
                                 alt="Custom Cover"
-                                fill
-                                className="object-cover rounded-lg"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
+                                className="w-full h-full object-cover rounded-xl"
                               />
                               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                                 <span className="text-white font-bold text-[10px] bg-black/40 px-2 py-1 rounded">
@@ -363,7 +379,7 @@ export default function EditQuizPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                              <div className="w-10 h-10 rounded-lg bg-[#C9750A] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
                                 {isUploading ? (
                                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
@@ -392,7 +408,7 @@ export default function EditQuizPage() {
                                 <Input
                                   {...field}
                                   placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
-                                  className="bg-white/80 border-[#8b6056] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#8b6056]"
+                                  className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl focus:border-[#C9750A] text-#C9750A"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -411,7 +427,7 @@ export default function EditQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#8b6056] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#8b6056]"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-#C9750A"
                                   />
                                 </FormControl>
                                 <input
@@ -423,7 +439,7 @@ export default function EditQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute right-0 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -448,7 +464,7 @@ export default function EditQuizPage() {
                               <Textarea
                                 {...field}
                                 placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
-                                className="bg-white/80 border-[#8b6056] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#8b6056] resize-none p-4"
+                                className="bg-white/80 border-[#C9750A] border-2 min-h-[150px] rounded-2xl focus:border-[#C9750A] text-#C9750A resize-none p-4"
                               />
                             </FormControl>
                             <FormMessage />
@@ -458,11 +474,11 @@ export default function EditQuizPage() {
                     </div>
 
                     {/* Footer Buttons */}
-                    <div className="flex justify-end pt-4 gap-2">
+                    <div className="flex justify-end pt-2 gap-2">
                       <Button
                         type="submit"
                         disabled={isActionLoading}
-                        className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
+                        className="bg-[#C9750A] hover:bg-[#5d4037] text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                       >
                         {isActionLoading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -476,7 +492,7 @@ export default function EditQuizPage() {
                         onClick={() => {
                           setCurrentMode('buat_soal');
                         }}
-                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-6 rounded-xl text-lg font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                        className="bg-amber-600 cursor-pointer hover:bg-amber-700 text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
                       >
                         <Plus size={20} />
                         Buat Soal
@@ -489,14 +505,35 @@ export default function EditQuizPage() {
                 // Buat Soal Form - 3-6-3 Column Layout
                 <div className="flex-1 grid grid-cols-12 gap-6">
                   {/* Section 1 - Questions List */}
-                  <div className="col-span-2 space-y-3 max-h-screen overflow-y-auto pr-2 border-r-2">
+                  <div className="col-span-3 space-y-3  p-4 md:p-6 max-h-screen overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
                     <div className="space-y-2">
                       {questions.map((question, index) => (
-                        <div key={index} className="bg-[#f5f5f5] relative rounded-lg p-3 border border-[#d4c8c0] min-h-16 flex items-center w-full justify-center">
-                          <Image src={question.imageUrl ? question.imageUrl : '/file.svg'} alt="Question" width={20} height={20} />
+                        <div 
+                          key={index} 
+                          className="bg-tranparent relative rounded-lg p-3 border border-[#C9750A] min-h-24 flex items-center w-full justify-center"
+                          style={question.imageUrl ? {
+                            backgroundImage: `url(${question.imageUrl})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
+                          } : {}}
+                        >
+                          {!question.imageUrl && (
+                            <img src="/file.svg" alt="Question" width={25} height={25}/>
+                          )}
+                          <button
+                            onClick={() => handleEditQuestion(question.id)}
+                            className="rounded-sm cursor-pointer bg-blue-500/20 absolute right-9 top-2 transition-opacity text-blue-500 hover:text-blue-700 p-1"
+                            title="Edit Soal"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
                           <button
                             onClick={() => handleDeleteQuestion(question.id)}
                             className="rounded-sm cursor-pointer bg-red-500/20 absolute right-2 top-2 transition-opacity text-red-500 hover:text-red-700 p-1"
+                            title="Hapus Soal"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -504,36 +541,79 @@ export default function EditQuizPage() {
                       ))}
 
                       {questions.length === 0 && (
-                        <div className="text-center text-gray-500 py-10 border-2 rounded-xl">
+                        <div className="text-center text-gray-500 py-10 border-2 border-[#C9750A] rounded-xl">
                           <p>Belum ada soal</p>
                         </div>
                       )}
                     </div>
-                    <button className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#8d6e63] hover:bg-[#6d4c41] text-white rounded-sm p-2 font-bold transition-colors">
+                    <button className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors">
                       <Plus size={16}/> Tambah Soal
                     </button>
                   </div>
 
                   {/* Section 2 - Question Input & Image Upload */}
-                  <div className="col-span-6 space-y-6 max-h-screen overflow-y-auto pr-2">
+                  <div className="col-span-4 space-y-3  py-6 p-2 max-h-screen overflow-y-auto pr-2">
                     {/* form input question */}
                     <div>
                       <input 
                         type="text" 
-                        className="w-full bg-white border-[#8b6056] border-2 rounded-md h-10 px-3 text-[#8b6056]" 
+                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 text-#C9750A" 
                         placeholder="Tulis soal anda"
                       />
+                    </div>
+                    
+                    {/* Image Upload */}
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          ref={questionImageInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, "questionImage")}
+                        />
+                        {/* image yang d uupload  */}
+                        {questionImageUrl ? (
+                          <div className="mb-4">
+                            <div 
+                              className="cursor-pointer relative w-full h-52 border-2 border-[#C9750A] rounded-lg overflow-hidden"
+                              onClick={() => questionImageInputRef.current?.click()}
+                            >
+                              <img 
+                                src={questionImageUrl} 
+                                alt="Uploaded image" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        ):
+                          <button
+                            type="button"
+                            onClick={() => questionImageInputRef.current?.click()}
+                            className="w-full border-[#C9750A] border-2 border-dashed rounded-lg p-4 bg-white/80 hover:bg-white transition-colors cursor-pointer h-36"
+                          >
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <svg className="w-8 h-8 text-[#C9750A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-sm text-gray-600">
+                                {questionImageUploading ? "Uploading..." : "Klik untuk upload gambar soal"}
+                              </span>
+                            </div>
+                          </button>
+                        }
+                      </div>
                     </div>
                   </div>
 
                   {/* Section 3 - Settings & Answer Cards */}
-                  <div className="col-span-4 space-y-6 max-h-screen overflow-y-auto pl-2 border-l-2">
+                  <div className="col-span-5 space-y-3 p-4 md:p-6 max-h-screen overflow-y-auto pl-2 border-l border-[#C9750A]">
                     {/* Settings Section */}
-                    <div className="bg-white/90 border-2 border-[#8b6056] rounded-2xl p-6">
+                    <div className="border-2 border-[#C9750A] rounded-2xl p-2">
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-[#5d4037] font-bold mb-2">Tipe soal</label>
-                          <select className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 text-[#8b6056]">
+                          <label className="block text-#C9750A font-bold mb-2">Tipe soal</label>
+                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
                             <option>Benar atau Salah</option>
                             <option>Pilihan Ganda</option>
                             <option>Essay</option>
@@ -541,7 +621,7 @@ export default function EditQuizPage() {
                         </div>
                         <div>
                           <label className="block text-[#5d4037] font-bold mb-2">Waktu</label>
-                          <select className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 text-[#8b6056]">
+                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
                             <option>10 Detik</option>
                             <option>20 Detik</option>
                             <option>30 Detik</option>
@@ -554,12 +634,24 @@ export default function EditQuizPage() {
                               type="text" 
                               value="Default by Tema"
                               readOnly
-                              className="w-full bg-white border-[#8b6056] border-2 h-10 rounded-lg px-3 pr-10 text-[#8b6056]"
+                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-10 text-[#C9750A]"
                             />
-                            <button className="absolute right-2 top-2 text-[#8d6e63] hover:text-[#5d4037]">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                              </svg>
+                            <input
+                              type="file"
+                              ref={buatSoalMusicFileInputRef}
+                              className="hidden"
+                              accept="audio/*"
+                              onChange={(e) => handleFileUpload(e, "music")}
+                            />
+                            <button 
+                              onClick={() => buatSoalMusicFileInputRef.current?.click()}
+                              className="absolute right-2 top-2 text-[#C9750A] hover:text-[#5d4037]"
+                            >
+                              {isUploading ? (
+                                <div className="w-5 h-5 border-2 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Upload size={20} />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -567,9 +659,20 @@ export default function EditQuizPage() {
                     </div>
 
                     {/* Save Button */}
-                    <div className="flex justify-end">
-                      <button className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-3 rounded-xl font-bold transition-colors">
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
+                      >
                         Simpan Kuis
+                      </button>
+                      <button 
+                        className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer hover:bg-[#C9750A] border border-[#C9750A] text-[#C9750A] hover:text-white rounded-sm p-2 font-bold transition-colors"
+                        type="button"
+                        onClick={() => {
+                          setCurrentMode('edit');
+                        }}
+                      >
+                        Batal
                       </button>
                     </div>
                   </div>
