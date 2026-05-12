@@ -1,37 +1,68 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, Loader2, Trash2, Edit2, AlertTriangle } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import Swal from 'sweetalert2';
 
 export default function DashboardAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [quizToDelete, setQuizToDelete] = useState<string | number | null>(null);
-
+  
   const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, deleteQuiz } = useQuizzes(debouncedSearch);
 
+  // Intersection Observer for infinite scroll
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const target = entries[0];
+    if (target.isIntersecting && hasMore && !isLoading && !isFetchingMore) {
+      loadMore();
+    }
+  }, [hasMore, isLoading, isFetchingMore, loadMore]);
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: '100px'
+    });
+
+    if (observerTarget.current) {
+      observerRef.current.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [handleObserver]);
+
   const handleDeleteQuiz = async (id: string | number) => {
-    try {
-      await deleteQuiz(id);
-      toast.success("Kuis berhasil dihapus");
-    } catch (err: any) {
-      toast.error("Gagal menghapus kuis: " + err.message);
+    const result = await Swal.fire({
+      title: 'Hapus Kuis?',
+      text: 'Kuis yang dihapus tidak dapat dikembalikan lagi!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteQuiz(id);
+        toast.success("Kuis berhasil dihapus");
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        toast.error("Gagal menghapus kuis: " + errorMessage);
+      }
     }
   };
 
@@ -47,32 +78,12 @@ export default function DashboardAdminPage() {
     await signOut({ callbackUrl: "/auth/login" });
   };
 
-  // Intersection Observer for Infinite Scroll
-  const observerTarget = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasMore && !isFetchingMore && !isLoading) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, isFetchingMore, isLoading, loadMore]);
-
   return (
     <div className="h-screen relative overflow-hidden flex flex-col">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -100,7 +111,7 @@ export default function DashboardAdminPage() {
             <input
               type="text"
               placeholder="Ketik disini untuk mencari kuis..."
-              className="w-full py-3 md:py-4 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-amber-700/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-amber-700 shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
+              className="w-full py-3 md:py-4 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-[#C9750A]/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-[#C9750A] shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -129,12 +140,12 @@ export default function DashboardAdminPage() {
             <img src="/images/people.svg" alt="people" className="h-full object-contain" />
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0">
             {/* Main Card List */}
             <div
               className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
-                backgroundImage: 'url(/images/bg-card-list.svg)',
+                backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 fontFamily: 'Varela Round'
@@ -156,7 +167,7 @@ export default function DashboardAdminPage() {
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
-                    <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-16 h-16 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
                     <p className="text-amber-900 font-bold animate-pulse">Memuat kuis seru...</p>
                   </div>
                 ) : error ? (
@@ -179,11 +190,11 @@ export default function DashboardAdminPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-4 gap-4 md:gap-6 pb-4">
                       {quizzes.map((quiz, index) => (
                         <div
                           key={`${quiz.id}-${index}`}
-                          className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-amber-200 hover:border-amber-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
+                          className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
                         >
                           <div className="aspect-video bg-linear-to-br from-amber-100 to-amber-300 flex items-center justify-center relative overflow-hidden">
                             {quiz.coverImage ? (
@@ -207,10 +218,9 @@ export default function DashboardAdminPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setQuizToDelete(quiz.id);
-                                  setIsDeleteDialogOpen(true);
+                                  handleDeleteQuiz(quiz.id);
                                 }}
-                                className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-red-600 shadow-md hover:bg-red-600 hover:text-white transition-all"
+                                className="w-8 h-8 cursor-pointer bg-white/90 rounded-full flex items-center justify-center text-red-600 shadow-md hover:bg-red-600 hover:text-white transition-all"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -237,14 +247,21 @@ export default function DashboardAdminPage() {
                     {/* Infinite Scroll Trigger */}
                     <div ref={observerTarget} className="py-8 flex justify-center w-full">
                       {isFetchingMore ? (
-                        <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-amber-200 shadow-sm">
+                        <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-[#C9750A] shadow-sm">
                           <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
                           <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
                         </div>
                       ) : hasMore ? (
-                        <div className="h-4" /> // Spacer for observer
+                        <div className="flex justify-center py-4">
+                          <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full border border-[#C9750A] shadow-sm">
+                            <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
+                            <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
+                          </div>
+                        </div>
                       ) : quizzes.length > 0 ? (
-                        <div className="text-amber-700/60 text-sm font-medium">Sudah semua kuis dimuat ✨</div>
+                        <div className="text-center py-4">
+                          <div className="text-amber-700/60 text-sm font-medium">Sudah semua kuis dimuat ✨</div>
+                        </div>
                       ) : null}
                     </div>
                   </>
@@ -273,42 +290,14 @@ export default function DashboardAdminPage() {
 
       {/* Settings/Volume Button */}
       <div className="fixed bottom-4 right-4 z-50">
-        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
+        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-#C9750A/20 hover:bg-white transition-all group active:scale-90">
           <svg className="w-6 h-6 md:w-7 md:h-7 text-amber-700 group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#fdf6e9] border-2 border-amber-200 rounded-3xl">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3 text-red-600 mb-2">
-              <AlertTriangle className="w-8 h-8" />
-              <AlertDialogTitle className="text-2xl font-bold text-amber-950">Hapus Kuis?</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-amber-900 text-base">
-              Tindakan ini tidak dapat dibatalkan. Kuis ini akan dihapus secara permanen dari server kami.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="rounded-xl border-amber-200 text-amber-950 hover:bg-amber-50">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (quizToDelete) {
-                  handleDeleteQuiz(quizToDelete);
-                  setQuizToDelete(null);
-                }
-              }}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-6"
-            >
-              Ya, Hapus Sekarang
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+      
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;

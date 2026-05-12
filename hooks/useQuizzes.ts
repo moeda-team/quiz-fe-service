@@ -2,13 +2,24 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
+import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
+import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
   title: string;
-  questions: number | any[];
+  name?: string;
+  questions: number | QuizQuestion[];
   author?: string;
   coverImage?: string;
+  image?: string;
+  cover_image?: string;
+  description?: string;
+  instructions?: string;
+  musicFile?: string;
+  music_file?: string;
+  themeId?: string;
+  theme_id?: string;
 }
 
 export function useQuizzes(searchQuery: string = "") {
@@ -19,8 +30,6 @@ export function useQuizzes(searchQuery: string = "") {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
   const fetchQuizzes = useCallback(async (pageNum: number, search: string, append: boolean = false) => {
     try {
       if (append) setIsFetchingMore(true);
@@ -29,36 +38,36 @@ export function useQuizzes(searchQuery: string = "") {
       setError(null);
 
       // Construct URL with params
-      let url = `/quizzes?page=${pageNum}&limit=10`;
+      let url = `/quizzes?page=${pageNum}&limit=8`;
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
 
-      const response = await apiGet<{ data: any[], meta?: any }>(url);
+      const response = await apiGet<PaginatedResponse<QuizDynamicResponse>>(url);
 
-      const mappedData = response.data.map((item: any) => ({
+      const mappedData = response.data.map((item: QuizDynamicResponse) => ({
         id: item.id,
-        title: item.title || item.name,
+        title: item.title || item.name || "",
         questions: Array.isArray(item.questions) ? item.questions.length : (item.total_questions || 0),
         author: item.author || item.creator?.name || "Admin",
         coverImage: item.coverImage || item.image || "/images/bali-culture.jpg",
       }));
 
       if (append) {
-        setQuizzes(prev => [...prev, ...mappedData]);
+        setQuizzes((prev: Quiz[]) => [...prev, ...mappedData]);
       } else {
         setQuizzes(mappedData);
       }
 
       // Check if there's more data
       // If the API returns meta.hasMore or similar, use it. 
-      // Otherwise, assume more if we got 10 items.
-      const hasMoreData = mappedData.length === 10;
+      // Otherwise, assume more if we got 8 items.
+      const hasMoreData = mappedData.length === 8;
       setHasMore(hasMoreData);
 
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to fetch quizzes:", err);
-      setError(err.message || "Gagal mengambil data kuis");
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
       setIsFetchingMore(false);
@@ -67,8 +76,19 @@ export function useQuizzes(searchQuery: string = "") {
 
   // Initial fetch and search
   useEffect(() => {
-    setPage(1);
-    fetchQuizzes(1, searchQuery, false);
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchQuizzes(1, searchQuery, false);
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [searchQuery, fetchQuizzes]);
 
   const loadMore = useCallback(() => {
@@ -78,30 +98,30 @@ export function useQuizzes(searchQuery: string = "") {
     fetchQuizzes(nextPage, searchQuery, true);
   }, [hasMore, isLoading, isFetchingMore, page, searchQuery, fetchQuizzes]);
 
-  const createQuiz = useCallback(async (data: any) => {
+  const createQuiz = useCallback(async (data: QuizCreateData) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPost("/quizzes", data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to create quiz:", err);
-      setError(err.message || "Gagal membuat kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const updateQuiz = useCallback(async (id: string | number, data: any) => {
+  const updateQuiz = useCallback(async (id: string | number, data: UpdateData<QuizType>) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPatch(`/quizzes/${id}`, data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to update quiz:", err);
-      setError(err.message || "Gagal memperbarui kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -113,25 +133,25 @@ export function useQuizzes(searchQuery: string = "") {
       setIsLoading(true);
       setError(null);
       await apiDelete(`/quizzes/${id}`);
-      setQuizzes(prev => prev.filter(q => q.id !== id));
-    } catch (err: any) {
+      setQuizzes((prev: Quiz[]) => prev.filter((q: Quiz) => q.id !== id));
+    } catch (err: ErrorType) {
       console.error("Failed to delete quiz:", err);
-      setError(err.message || "Gagal menghapus kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const patchQuiz = useCallback(async (id: string | number, data: any) => {
+  const patchQuiz = useCallback(async (id: string | number, data: UpdateData<QuizType>) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await apiPatch(`/quizzes/${id}`, data);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to patch quiz:", err);
-      setError(err.message || "Gagal memperbarui kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -142,11 +162,11 @@ export function useQuizzes(searchQuery: string = "") {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiGet<any>(`/quizzes/${id}`);
+      const response = await apiGet<{ data?: Quiz } | Quiz>(`/quizzes/${id}`);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to fetch quiz details:", err);
-      setError(err.message || "Gagal mengambil detail kuis");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);

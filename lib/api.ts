@@ -53,6 +53,14 @@ export async function apiPost<T>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized - redirecting to login");
+    }
+    
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
@@ -80,6 +88,14 @@ export async function apiGet<T>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized - redirecting to login");
+    }
+    
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
@@ -108,6 +124,14 @@ export async function apiPut<T>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized - redirecting to login");
+    }
+    
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
@@ -137,6 +161,14 @@ export async function apiPatch<T>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized - redirecting to login");
+    }
+    
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
@@ -164,6 +196,14 @@ export async function apiDelete<T>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized - redirecting to login");
+    }
+    
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();

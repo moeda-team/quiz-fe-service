@@ -106,7 +106,7 @@ export default function RegisterPage() {
           </div>
           
           {(formError || apiError) && (
-            <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <div className="mb-4 text-sm text-red-600 bg-red-50 border border-[#C9750A] rounded-md px-3 py-2">
               {formError ?? apiError}
             </div>
           )}

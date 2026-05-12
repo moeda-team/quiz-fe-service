@@ -3,13 +3,16 @@
 import { useState, useCallback } from "react";
 import { API_BASE_URL, getAuthHeader } from "@/lib/api";
 
+import { getErrorMessage, ErrorType, DynamicObject } from "@/types/common";
+
 interface UploadResponse {
   success: boolean;
   message: string;
   data: {
     url: string;
+    fileUrl: string;
     id: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -59,8 +62,8 @@ export function useFileUpload() {
 
         const data = await response.json();
         return data as UploadResponse;
-      } catch (err: any) {
-        const message = err.message || "Failed to upload file";
+      } catch (err: ErrorType) {
+        const message = getErrorMessage(err) || "Failed to upload file";
         setError(message);
         throw new Error(message);
       } finally {

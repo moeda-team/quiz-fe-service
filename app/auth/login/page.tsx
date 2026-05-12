@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import { Eye, EyeOff } from "lucide-react";
@@ -29,6 +29,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +63,7 @@ function LoginPageInner() {
       }
 
       // Redirect to dashboard on successful login
-      window.location.href = "/auth/redirect";
+      router.push(callbackUrl);
     } catch {
       setErrorMsg("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
@@ -84,7 +85,7 @@ function LoginPageInner() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -98,7 +99,7 @@ function LoginPageInner() {
             {/* Card Background */}
             <div className="relative w-full max-w-[650px] mx-auto h-auto">
               <Image
-                src="/images/login/card.svg"
+                src="/images/login/card-login.webp"
                 alt="Login Card"
                 width={800}
                 height={900}
@@ -131,7 +132,7 @@ function LoginPageInner() {
                 </div>
 
                 {errorMsg && (
-                  <div className="bg-red-50/90 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+                  <div className="bg-red-50/90 border border-[#C9750A] text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
                     {errorMsg}
                   </div>
                 )}
@@ -147,7 +148,7 @@ function LoginPageInner() {
                             <Input
                               {...field}
                               type="email"
-                              className="bg-transparent border border-amber-700 rounded-lg px-3 py-2"
+                              className="bg-transparent border border-[#C9750A] rounded-lg px-3 py-2"
                               autoComplete="email"
                             />
                           </FormControl>
@@ -185,15 +186,16 @@ function LoginPageInner() {
 
                     <Button
                       type="submit"
-                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full sm:h-14 md:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full sm:h-14 md:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold"
                       disabled={isSubmitting}
                     >
                       <Image
-                        src="/images/login/btn-login.svg"
+                        src="/images/login/btn-login.webp"
                         alt="Login Button"
                         fill
                         className="object-contain"
                       />
+                      <span className="relative z-10">Masuk</span>
                     </Button>
                   </form>
                 </Form>

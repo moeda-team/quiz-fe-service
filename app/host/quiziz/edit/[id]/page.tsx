@@ -1,15 +1,16 @@
 "use client";
 
 import { toast } from "sonner";
+import Swal from 'sweetalert2';
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Upload, Save, ChevronLeft, Loader2 } from "lucide-react";
+import { Upload, Save, ChevronLeft, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -33,22 +34,33 @@ type QuizFormValues = z.infer<typeof quizSchema>;
 
 // Themes are now fetched from useThemes hook
 
-import { useQuizzes } from "@/hooks/useQuizzes";
+import { useQuizzes, Quiz } from "@/hooks/useQuizzes";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useThemes } from "@/hooks/useThemes";
 import { useRef } from "react";
+import { Plus } from "lucide-react";
+import { Question, useQuestions } from "@/hooks/useQuestions";
+
 
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
   const { getQuizById, updateQuiz, isLoading: isActionLoading } = useQuizzes();
+  const { deleteQuestion } = useQuestions();
   const { uploadFile, isUploading } = useFileUpload();
   const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [currentMode, setCurrentMode] = useState<'edit' | 'buat_soal'>('edit');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionImageUploading, setQuestionImageUploading] = useState(false);
+  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [buatSoalMusicUrl, setBuatSoalMusicUrl] = useState("");
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const musicFileInputRef = useRef<HTMLInputElement>(null);
+  const questionImageInputRef = useRef<HTMLInputElement>(null);
+  const buatSoalMusicFileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
@@ -61,12 +73,19 @@ export default function EditQuizPage() {
     },
   });
 
+  const coverImageValue = useWatch({ control: form.control, name: "coverImage" });
+
   useEffect(() => {
     const fetchQuiz = async () => {
       if (!params.id || themes.length === 0) return;
       try {
         const response = await getQuizById(params.id as string);
-        const quizData = response.data || response;
+        const quizData: Quiz = ('data' in response && response.data) ? response.data : response as Quiz;
+        
+        // Set questions state
+        if (quizData.questions && Array.isArray(quizData.questions)) {
+          setQuestions(quizData.questions as Question[]);
+        }
 
         // Map API response to form values
         const themeId = quizData.themeId || quizData.theme_id || "";
@@ -97,56 +116,72 @@ export default function EditQuizPage() {
   useEffect(() => {
     if (themes.length > 0 && !selectedTheme && !isPageLoading) {
       const defaultTheme = themes[0];
-      setSelectedTheme(defaultTheme.id);
       form.setValue("themeId", defaultTheme.id);
       form.setValue("coverImage", defaultTheme.imageUrl);
+      // Use setTimeout to defer state update and avoid cascading renders
+      setTimeout(() => setSelectedTheme(defaultTheme.id), 0);
     }
   }, [themes, selectedTheme, form, isPageLoading]);
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "image" | "music"
+    type: "image" | "music" | "questionImage"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const category = type === "image" ? "image" : "music";
-      const context = "quiz";
+      if (type === "questionImage") {
+        setQuestionImageUploading(true);
+        // For question image, we don't need to create a theme
+        // Just handle the upload and store the URL in state
+        const response = await uploadFile(file, "image", "question");
+        if (response) {
+          toast.success("Gambar soal berhasil diupload!");
+          setQuestionImageUrl(response.data.fileUrl);
+        }
+        setQuestionImageUploading(false);
+      } else {
+        const category = type === "image" ? "image" : "music";
+        const context = "quiz";
 
-      const response = await uploadFile(file, category, context);
+        const response = await uploadFile(file, category, context);
 
-      if (response) {
-        if (type === "image") {
-          // Create a new theme in master data
-          try {
-            const newTheme = await addTheme({
-              name: `Tema Kustom ${new Date()}`,
-              imageUrl: response.data.fileUrl
-            });
-            
-            // Refresh themes to ensure new theme appears in UI
-            await refreshThemes();
-            
-            form.setValue("themeId", newTheme.id);
-            form.setValue("coverImage", response.data.fileUrl);
-            setSelectedTheme(newTheme.id);
-            toast.success("Tema kustom berhasil dibuat!");
-          } catch (err: unknown) {
-            // Fallback if theme creation fails but upload succeeded
-            const errorMessage = err instanceof Error ? err.message : "Unknown error";
-            form.setValue("coverImage", response.data.fileUrl);
-            setSelectedTheme("custom");
-            toast.error("Gagal mendaftarkan tema kustom: " + errorMessage);
+        if (response) {
+          if (type === "image") {
+            // Create a new theme in master data
+            try {
+              const newTheme = await addTheme({
+                name: `Tema Kustom ${new Date()}`,
+                imageUrl: response.data.fileUrl
+              });
+              
+              // Refresh themes to ensure new theme appears in UI
+              await refreshThemes();
+              
+              form.setValue("themeId", newTheme.id);
+              form.setValue("coverImage", response.data.fileUrl);
+              setSelectedTheme(newTheme.id);
+              toast.success("Tema kustom berhasil dibuat!");
+            } catch (err: unknown) {
+              // Fallback if theme creation fails but upload succeeded
+              const errorMessage = err instanceof Error ? err.message : "Unknown error";
+              form.setValue("coverImage", response.data.fileUrl);
+              setSelectedTheme("custom");
+              toast.error("Gagal mendaftarkan tema kustom: " + errorMessage);
+            }
+          } else {
+            form.setValue("musicFile", response.data.fileUrl);
+            toast.success("Musik berhasil diupload!");
           }
-        } else {
-          form.setValue("musicFile", response.data.fileUrl);
-          toast.success("Musik berhasil diupload!");
         }
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Gagal upload ${type}: ` + errorMessage);
+      if (type === "questionImage") {
+        setQuestionImageUploading(false);
+      }
     }
   };
 
@@ -167,10 +202,43 @@ export default function EditQuizPage() {
     }
   };
 
+  const handleDeleteQuestion = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Soal?',
+      text: 'Soal yang dihapus tidak dapat dikembalikan lagi!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteQuestion(params.id as string, id);
+        const newQuestions = questions.filter(q => q.id !== id);
+        setQuestions(newQuestions);
+        toast.success("Soal berhasil dihapus");
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        toast.error("Gagal menghapus soal: " + errorMessage);
+      }
+    }
+  };
+
+  const handleEditQuestion = (id: string) => {
+    // Find the question by ID
+    const questionToEdit = questions.find(q => q.id === id);
+    if (questionToEdit) {
+      console.log(questionToEdit)
+    }
+  };
+
   if (isPageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fdf6e9]">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-2">
           <Loader2 className="w-12 h-12 text-amber-700 animate-spin" />
           <p className="text-amber-900 font-bold">Memuat data kuis...</p>
         </div>
@@ -182,13 +250,11 @@ export default function EditQuizPage() {
     <div className="h-screen relative overflow-hidden flex flex-col">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/bg-main.svg"
+        <img
+          src="/images/bg-main.webp"
           alt="Background"
-          fill
-          className="object-cover"
-          priority
-        />
+          className="w-full h-full object-cover"
+        />``
       </div>
 
       {/* Main Content */}
@@ -206,48 +272,46 @@ export default function EditQuizPage() {
         </header>
 
         {/* Content Section */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0">
-          {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
-            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
-          </div>
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
 
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
+          <div className="flex flex-col lg:flex-row gap-2 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
-              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
-                backgroundImage: 'url(/images/bg-card-list.svg)',
+                backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 fontFamily: 'Varela Round'
               }}
             >
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-4 flex flex-col">
+              {/* form edit */}
+              {currentMode === 'edit' ? (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col p-4 md:p-6">
                   {/* Section Header */}
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-4">
-                      <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
+                    <div className="flex items-center gap-2 md:gap-2">
+                      <img src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                       <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
                         EDIT KUIS
                       </div>
-                      <img src="/images/icon-title-r.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
+                      <img src="/images/icon-title-r.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                     </div>
                   </div>
 
                   {/* Form Content Scroll Area */}
-                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-4">
+                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-2">
                     {/* Theme Selection Section */}
                     <div className="space-y-4">
                       <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
                       <div className="flex gap-6">
                         {/* Theme List */}
                         <div className="overflow-x-auto pb-4 flex-1">
-                          <div className="flex gap-4 min-w-max p-1 px-2">
+                          <div className="flex gap-2 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
-                                <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-8 h-8 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
                               </div>
                             ) : (
                               themes.map((theme, index) => (
@@ -260,20 +324,15 @@ export default function EditQuizPage() {
                                   }}
                                   className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 w-48 flex-shrink-0 ${
                                     selectedTheme === theme.id 
-                                      ? "border-[#8d6e63] scale-105 shadow-lg" 
+                                      ? "border-[#C9750A] scale-105 shadow-lg" 
                                       : "border-transparent opacity-80 hover:opacity-100"
                                   }`}
                                 >
                                   {theme.imageUrl && theme.imageUrl.trim() !== "" ? (
-                                    <Image 
+                                    <img 
                                       src={theme.imageUrl} 
                                       alt={theme.name || `Tema ${theme.id}`} 
-                                      fill 
-                                      className="object-cover" 
-                                      loading="lazy" 
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
+                                      className="w-full h-full object-cover rounded-xl"
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-300 flex items-center justify-center">
@@ -294,8 +353,8 @@ export default function EditQuizPage() {
                         {/* Upload Own Theme - Fixed beside theme list */}
                         <div
                           onClick={() => coverImageInputRef.current?.click()}
-                          className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
-                            selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
+                          className={`aspect-video rounded-xl border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                            selectedTheme === "custom" ? "border-[#C9750A] bg-[#efebe9]" : ""
                           }`}
                         >
                           <input
@@ -305,16 +364,12 @@ export default function EditQuizPage() {
                             accept="image/*"
                             onChange={(e) => handleFileUpload(e, "image")}
                           />
-                          {form.watch("coverImage") && selectedTheme === "custom" && form.watch("coverImage")?.trim() !== "" ? (
+                          {coverImageValue && selectedTheme === "custom" && coverImageValue?.trim() !== "" ? (
                             <div className="relative w-full h-full">
-                              <Image
-                                src={form.watch("coverImage") || ""}
+                              <img
+                                src={coverImageValue || ""}
                                 alt="Custom Cover"
-                                fill
-                                className="object-cover rounded-lg"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
+                                className="w-full h-full object-cover rounded-xl"
                               />
                               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                                 <span className="text-white font-bold text-[10px] bg-black/40 px-2 py-1 rounded">
@@ -324,7 +379,7 @@ export default function EditQuizPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                              <div className="w-10 h-10 rounded-lg bg-[#C9750A] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
                                 {isUploading ? (
                                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
@@ -353,7 +408,7 @@ export default function EditQuizPage() {
                                 <Input
                                   {...field}
                                   placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
-                                  className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#4e342e]"
+                                  className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl focus:border-[#C9750A] text-#C9750A"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -372,7 +427,7 @@ export default function EditQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-#C9750A"
                                   />
                                 </FormControl>
                                 <input
@@ -384,7 +439,7 @@ export default function EditQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute right-0 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -409,7 +464,7 @@ export default function EditQuizPage() {
                               <Textarea
                                 {...field}
                                 placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
-                                className="bg-white/80 border-[#d7ccc8] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#4e342e] resize-none p-4"
+                                className="bg-white/80 border-[#C9750A] border-2 min-h-[150px] rounded-2xl focus:border-[#C9750A] text-#C9750A resize-none p-4"
                               />
                             </FormControl>
                             <FormMessage />
@@ -419,11 +474,11 @@ export default function EditQuizPage() {
                     </div>
 
                     {/* Footer Buttons */}
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end pt-2 gap-2">
                       <Button
                         type="submit"
                         disabled={isActionLoading}
-                        className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
+                        className="bg-[#C9750A] hover:bg-[#5d4037] text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                       >
                         {isActionLoading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -432,10 +487,200 @@ export default function EditQuizPage() {
                         )}
                         {isActionLoading ? "Memperbarui..." : "Perbarui Kuis"}
                       </Button>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setCurrentMode('buat_soal');
+                        }}
+                        className="bg-amber-600 cursor-pointer hover:bg-amber-700 text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                      >
+                        <Plus size={20} />
+                        Buat Soal
+                      </Button>
                     </div>
                   </div>
-                </form>
-              </Form>
+                  </form>
+                </Form>
+              ) : (
+                // Buat Soal Form - 3-6-3 Column Layout
+                <div className="flex-1 grid grid-cols-12 gap-6">
+                  {/* Section 1 - Questions List */}
+                  <div className="col-span-3 space-y-3  p-4 md:p-6 max-h-screen overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
+                    <div className="space-y-2">
+                      {questions.map((question, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-tranparent relative rounded-lg p-3 border border-[#C9750A] min-h-24 flex items-center w-full justify-center"
+                          style={question.imageUrl ? {
+                            backgroundImage: `url(${question.imageUrl})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
+                          } : {}}
+                        >
+                          {!question.imageUrl && (
+                            <img src="/file.svg" alt="Question" width={25} height={25}/>
+                          )}
+                          <button
+                            onClick={() => handleEditQuestion(question.id)}
+                            className="rounded-sm cursor-pointer bg-blue-500/20 absolute right-9 top-2 transition-opacity text-blue-500 hover:text-blue-700 p-1"
+                            title="Edit Soal"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteQuestion(question.id)}
+                            className="rounded-sm cursor-pointer bg-red-500/20 absolute right-2 top-2 transition-opacity text-red-500 hover:text-red-700 p-1"
+                            title="Hapus Soal"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {questions.length === 0 && (
+                        <div className="text-center text-gray-500 py-10 border-2 border-[#C9750A] rounded-xl">
+                          <p>Belum ada soal</p>
+                        </div>
+                      )}
+                    </div>
+                    <button className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors">
+                      <Plus size={16}/> Tambah Soal
+                    </button>
+                  </div>
+
+                  {/* Section 2 - Question Input & Image Upload */}
+                  <div className="col-span-4 space-y-3  py-6 p-2 max-h-screen overflow-y-auto pr-2">
+                    {/* form input question */}
+                    <div>
+                      <input 
+                        type="text" 
+                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 text-#C9750A" 
+                        placeholder="Tulis soal anda"
+                      />
+                    </div>
+                    
+                    {/* Image Upload */}
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          ref={questionImageInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, "questionImage")}
+                        />
+                        {/* image yang d uupload  */}
+                        {questionImageUrl ? (
+                          <div className="mb-4">
+                            <div 
+                              className="cursor-pointer relative w-full h-52 border-2 border-[#C9750A] rounded-lg overflow-hidden"
+                              onClick={() => questionImageInputRef.current?.click()}
+                            >
+                              <img 
+                                src={questionImageUrl} 
+                                alt="Uploaded image" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        ):
+                          <button
+                            type="button"
+                            onClick={() => questionImageInputRef.current?.click()}
+                            className="w-full border-[#C9750A] border-2 border-dashed rounded-lg p-4 bg-white/80 hover:bg-white transition-colors cursor-pointer h-36"
+                          >
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <svg className="w-8 h-8 text-[#C9750A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-sm text-gray-600">
+                                {questionImageUploading ? "Uploading..." : "Klik untuk upload gambar soal"}
+                              </span>
+                            </div>
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3 - Settings & Answer Cards */}
+                  <div className="col-span-5 space-y-3 p-4 md:p-6 max-h-screen overflow-y-auto pl-2 border-l border-[#C9750A]">
+                    {/* Settings Section */}
+                    <div className="border-2 border-[#C9750A] rounded-2xl p-2">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-#C9750A font-bold mb-2">Tipe soal</label>
+                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
+                            <option>Benar atau Salah</option>
+                            <option>Pilihan Ganda</option>
+                            <option>Essay</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[#5d4037] font-bold mb-2">Waktu</label>
+                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
+                            <option>10 Detik</option>
+                            <option>20 Detik</option>
+                            <option>30 Detik</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[#5d4037] font-bold mb-2">Musik</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value="Default by Tema"
+                              readOnly
+                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-10 text-[#C9750A]"
+                            />
+                            <input
+                              type="file"
+                              ref={buatSoalMusicFileInputRef}
+                              className="hidden"
+                              accept="audio/*"
+                              onChange={(e) => handleFileUpload(e, "music")}
+                            />
+                            <button 
+                              onClick={() => buatSoalMusicFileInputRef.current?.click()}
+                              className="absolute right-2 top-2 text-[#C9750A] hover:text-[#5d4037]"
+                            >
+                              {isUploading ? (
+                                <div className="w-5 h-5 border-2 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Upload size={20} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
+                      >
+                        Simpan Kuis
+                      </button>
+                      <button 
+                        className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer hover:bg-[#C9750A] border border-[#C9750A] text-[#C9750A] hover:text-white rounded-sm p-2 font-bold transition-colors"
+                        type="button"
+                        onClick={() => {
+                          setCurrentMode('edit');
+                        }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* form-question */}
+
             </div>
           </div>
         </div>

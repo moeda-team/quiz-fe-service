@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { getErrorMessage, ErrorType } from "@/types/common";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
 
 export interface Theme {
@@ -25,9 +26,9 @@ export function useThemes() {
       // If the API returns { data: [...] }, use it, otherwise check if it's just an array
       const themesData = Array.isArray(response) ? response : (response.data || []);
       setThemes(themesData);
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to fetch themes:", err);
-      setError(err.message || "Gagal mengambil data tema");
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -38,11 +39,11 @@ export function useThemes() {
       setIsLoading(true);
       setError(null);
       const response = await apiPost<Theme>("/themes", data);
-      setThemes(prev => [...prev, response]);
+      setThemes((prev: Theme[]) => [...prev, response]);
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to add theme:", err);
-      setError(err.message || "Gagal menambah tema");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -54,11 +55,11 @@ export function useThemes() {
       setIsLoading(true);
       setError(null);
       const response = await apiPatch<Theme>(`/themes/${id}`, data);
-      setThemes(prev => prev.map(t => (t.id === id ? response : t)));
+      setThemes((prev: Theme[]) => prev.map((t: Theme) => (t.id === id ? response : t)));
       return response;
-    } catch (err: any) {
+    } catch (err: ErrorType) {
       console.error("Failed to update theme:", err);
-      setError(err.message || "Gagal memperbarui tema");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -70,10 +71,10 @@ export function useThemes() {
       setIsLoading(true);
       setError(null);
       await apiDelete(`/themes/${id}`);
-      setThemes(prev => prev.filter(t => t.id !== id));
-    } catch (err: any) {
+      setThemes((prev: Theme[]) => prev.filter((t: Theme) => t.id !== id));
+    } catch (err: ErrorType) {
       console.error("Failed to delete theme:", err);
-      setError(err.message || "Gagal menghapus tema");
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);
@@ -81,8 +82,11 @@ export function useThemes() {
   }, []);
 
   useEffect(() => {
-    fetchThemes();
-  }, [fetchThemes]);
+    const loadThemes = async () => {
+      await fetchThemes();
+    };
+    loadThemes();
+  }, []);
 
   return { themes, isLoading, error, refreshThemes: fetchThemes, addTheme, updateTheme, deleteTheme };
 }

@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "api-quiz.hompimpa.biz.id" },
       { protocol: "https", hostname: "moeda-space.s3.ap-southeast-1.amazonaws.com" },
+      { protocol: "https", hostname: "pub-6cdb83741198489c89f54cff08d7d1c7.r2.dev" },
     ],
   },
   env: {

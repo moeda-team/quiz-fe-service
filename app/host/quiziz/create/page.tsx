@@ -122,9 +122,11 @@ export default function CreateQuizPage() {
   const onSubmit = async (data: QuizFormValues) => {
     try {
       const payload = {
-        ...data,
-        themeId: selectedTheme === "custom" ? "1a0206aa-72b6-4c83-b258-3a8c4bce9b1c" : data.themeId,
+        title: data.title,
+        description: data.instructions,
         coverImage: data.coverImage,
+        questions: [], // Empty array for new quiz
+        isPublished: false,
       };
 
       await createQuiz(payload);
@@ -141,7 +143,7 @@ export default function CreateQuizPage() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/bg-main.svg"
+          src="/images/bg-main.webp"
           alt="Background"
           fill
           className="object-cover"
@@ -164,18 +166,14 @@ export default function CreateQuizPage() {
         </header>
 
         {/* Content Section */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0">
-          {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
-            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
-          </div>
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
 
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
               className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
-                backgroundImage: 'url(/images/bg-card-list.svg)',
+                backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 fontFamily: 'Varela Round'
@@ -208,7 +206,7 @@ export default function CreateQuizPage() {
                           <div className="flex gap-4 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
-                                <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-8 h-8 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
                               </div>
                             ) : (
                               themes.map((theme, index) => (
@@ -221,7 +219,7 @@ export default function CreateQuizPage() {
                                   }}
                                   className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all border-4 w-48 flex-shrink-0 ${
                                     selectedTheme === theme.id 
-                                      ? "border-[#8d6e63] scale-105 shadow-lg" 
+                                      ? "border-[#C9750A] scale-105 shadow-lg" 
                                       : "border-transparent opacity-80 hover:opacity-100"
                                   }`}
                                 >
@@ -255,8 +253,8 @@ export default function CreateQuizPage() {
                         {/* Upload Own Theme - Fixed beside theme list */}
                         <div
                           onClick={() => coverImageInputRef.current?.click()}
-                          className={`aspect-video rounded-xl border-2 border-dashed border-[#a1887f] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
-                            selectedTheme === "custom" ? "border-[#8d6e63] bg-[#efebe9]" : ""
+                          className={`aspect-video rounded-xl border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                            selectedTheme === "custom" ? "border-[#C9750A] bg-[#efebe9]" : ""
                           }`}
                         >
                           <input
@@ -285,7 +283,7 @@ export default function CreateQuizPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="w-10 h-10 rounded-lg bg-[#8d6e63] flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                              <div className="w-10 h-10 rounded-lg bg-#C9750A flex items-center justify-center text-white group-hover:scale-110 transition-transform">
                                 {isUploading ? (
                                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
@@ -314,7 +312,7 @@ export default function CreateQuizPage() {
                                 <Input
                                   {...field}
                                   placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
-                                  className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl focus:border-[#8d6e63] text-[#4e342e]"
+                                  className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl focus:border-[#C9750A] text-#C9750A"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -333,7 +331,7 @@ export default function CreateQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#d7ccc8] border-2 h-12 rounded-xl pr-12 focus:border-[#8d6e63] text-[#4e342e]"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-#C9750A"
                                   />
                                 </FormControl>
                                 <input
@@ -345,7 +343,7 @@ export default function CreateQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute right-0 top-0 h-full w-12 bg-[#8d6e63] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute right-0 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -370,7 +368,7 @@ export default function CreateQuizPage() {
                               <Textarea
                                 {...field}
                                 placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
-                                className="bg-white/80 border-[#d7ccc8] border-2 min-h-[150px] rounded-2xl focus:border-[#8d6e63] text-[#4e342e] resize-none p-4"
+                                className="bg-white/80 border-[#C9750A] border-2 min-h-[150px] rounded-2xl focus:border-[#C9750A] text-#C9750A resize-none p-4"
                               />
                             </FormControl>
                             <FormMessage />
