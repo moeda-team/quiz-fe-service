@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
 import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
-import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData } from "@/types/quiz";
+import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData, QuizResponse } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
@@ -102,8 +102,8 @@ export function useQuizzes(searchQuery: string = "") {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiPost("/quizzes", data);
-      return response;
+      const response = await apiPost<QuizResponse>("/quizzes", data);
+      return response.data;
     } catch (err: ErrorType) {
       console.error("Failed to create quiz:", err);
       setError(getErrorMessage(err));
@@ -163,6 +163,10 @@ export function useQuizzes(searchQuery: string = "") {
       setIsLoading(true);
       setError(null);
       const response = await apiGet<{ data?: Quiz } | Quiz>(`/quizzes/${id}`);
+      // Handle both possible response formats
+      if (response && typeof response === 'object' && 'data' in response) {
+        return response.data;
+      }
       return response;
     } catch (err: ErrorType) {
       console.error("Failed to fetch quiz details:", err);

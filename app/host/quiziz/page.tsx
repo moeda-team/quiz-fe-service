@@ -64,7 +64,7 @@ export default function DashboardAdminPage() {
         <header className="mb-4 md:mb-6 shrink-0">
           <div className="text-center">
             <div
-              className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
+              className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
             >
               Empat Rima

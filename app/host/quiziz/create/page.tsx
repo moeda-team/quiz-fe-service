@@ -92,7 +92,7 @@ export default function CreateQuizPage() {
             const newTheme = await addTheme({
               name: `Tema Kustom ${new Date()}`,
               imageUrl: response.data.fileUrl
-            });
+            }) as { id: string; name: string; imageUrl: string };
             
             // Refresh themes to ensure new theme appears in UI
             await refreshThemes();
@@ -129,9 +129,12 @@ export default function CreateQuizPage() {
         isPublished: false,
       };
 
-      await createQuiz(payload);
-      toast.success("Kuis berhasil disimpan!");
-      router.push("/host");
+      const res = await createQuiz(payload);
+      
+      if (res?.id) {
+        toast.success("Kuis berhasil disimpan!");
+        router.push(`/host/quiziz/edit/${res.id}`);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       toast.error("Gagal menyimpan kuis: " + errorMessage);
@@ -154,10 +157,10 @@ export default function CreateQuizPage() {
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}
-        <header className=" shrink-0">
+        <header className="mb-4 md:mb-6 shrink-0">
           <div className="text-center">
             <div
-              className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
+              className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
             >
               Empat Rima
@@ -171,7 +174,7 @@ export default function CreateQuizPage() {
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
-              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0 max-h-full"
               style={{
                 backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
@@ -182,7 +185,7 @@ export default function CreateQuizPage() {
               <Form {...form}>
                 <form 
                   onSubmit={form.handleSubmit(onSubmit)} 
-                  className="flex-1 space-y-4 flex flex-col"
+                  className="flex-1 space-y-4 flex flex-col min-h-0"
                 >
                   {/* Section Header */}
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
@@ -202,7 +205,7 @@ export default function CreateQuizPage() {
                       <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
                       <div className="flex gap-6">
                         {/* Theme List */}
-                        <div className="overflow-x-auto pb-4 flex-1">
+                        <div className="overflow-x-auto flex-1">
                           <div className="flex gap-4 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
@@ -224,10 +227,9 @@ export default function CreateQuizPage() {
                                   }`}
                                 >
                                   {theme.imageUrl && theme.imageUrl.trim() !== "" ? (
-                                    <Image 
+                                    <img 
                                       src={theme.imageUrl} 
                                       alt={theme.name || `Tema ${theme.id}`} 
-                                      fill 
                                       className="object-cover" 
                                       loading="lazy" 
                                       onError={(e) => {
@@ -266,10 +268,9 @@ export default function CreateQuizPage() {
                           />
                           {form.watch("coverImage") && selectedTheme === "custom" && form.watch("coverImage")?.trim() !== "" ? (
                             <div className="relative w-full h-full">
-                              <Image
+                              <img
                                 src={form.watch("coverImage") || ""}
                                 alt="Custom Cover"
-                                fill
                                 className="object-cover rounded-lg"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';

@@ -97,7 +97,7 @@ export default function DashboardAdminPage() {
         <header className="mb-4 md:mb-6 shrink-0">
           <div className="text-center">
             <div
-              className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
+              className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
             >
               Empat Rima
@@ -111,7 +111,7 @@ export default function DashboardAdminPage() {
             <input
               type="text"
               placeholder="Ketik disini untuk mencari kuis..."
-              className="w-full py-3 md:py-4 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-[#C9750A]/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-[#C9750A] shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
+              className="w-full py-2 md:py-2 px-6 md:px-8 rounded-full bg-amber-50/95 border-4 border-[#C9750A]/50 text-amber-900 placeholder-amber-700/50 focus:outline-hidden focus:border-[#C9750A] shadow-2xl text-base md:text-lg transition-all duration-300 group-hover:shadow-amber-200/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -136,14 +136,14 @@ export default function DashboardAdminPage() {
         {/* Content Section */}
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-4 md:gap-6 flex-1 min-h-0">
           {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-20 lg:h-36 -mb-10 ml-4 shrink-0">
+          <div className="hidden md:flex justify-start h-16 lg:h-28 -mb-10 ml-4 shrink-0">
             <img src="/images/people.svg" alt="people" className="h-full object-contain" />
           </div>
 
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0">
             {/* Main Card List */}
             <div
-              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
               style={{
                 backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
@@ -155,7 +155,7 @@ export default function DashboardAdminPage() {
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-2 md:gap-4">
                   <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
-                  <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
+                  <div className="text-xl md:text-1xl text-amber-950 tracking-tight">
                     SEMUA KUIS
                   </div>
                   <img src="/images/icon-title-r.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
@@ -190,7 +190,7 @@ export default function DashboardAdminPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-4 gap-4 md:gap-6 pb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6 pb-4">
                       {quizzes.map((quiz, index) => (
                         <div
                           key={`${quiz.id}-${index}`}
@@ -205,7 +205,7 @@ export default function DashboardAdminPage() {
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                             {/* Action Buttons Overlay */}
-                            <div className="absolute top-2 right-2 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 z-20 lg:group-hover:opacity-100 transition-opacity">
                               <Link
                                 href={`/host/quiziz/edit/${quiz.id}`}
                                 className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-amber-700 shadow-md hover:bg-amber-700 hover:text-white transition-all"

@@ -13,6 +13,10 @@ export interface Theme {
   updated_at?: string;
 }
 
+interface ApiResponse<T> {
+  data?: T;
+}
+
 export function useThemes() {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,9 +42,18 @@ export function useThemes() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiPost<Theme>("/themes", data);
-      setThemes((prev: Theme[]) => [...prev, response]);
-      return response;
+      const response = await apiPost<Theme | ApiResponse<Theme>>("/themes", data);
+      // Handle both direct response and wrapped response
+      let themeData: Theme;
+      if (response && typeof response === 'object' && 'data' in response && response.data) {
+        themeData = response.data;
+      } else if (response && typeof response === 'object' && 'id' in response) {
+        themeData = response as Theme;
+      } else {
+        throw new Error("Invalid theme response from API");
+      }
+      setThemes((prev: Theme[]) => [...prev, themeData]);
+      return themeData;
     } catch (err: ErrorType) {
       console.error("Failed to add theme:", err);
       setError(getErrorMessage(err));
