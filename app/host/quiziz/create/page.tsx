@@ -174,7 +174,7 @@ export default function CreateQuizPage() {
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 -mb-5 flex-1 min-h-0">
             {/* Main Card Form */}
             <div
-              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0"
+              className="flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0 max-h-full"
               style={{
                 backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
@@ -185,7 +185,7 @@ export default function CreateQuizPage() {
               <Form {...form}>
                 <form 
                   onSubmit={form.handleSubmit(onSubmit)} 
-                  className="flex-1 space-y-4 flex flex-col"
+                  className="flex-1 space-y-4 flex flex-col min-h-0"
                 >
                   {/* Section Header */}
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
