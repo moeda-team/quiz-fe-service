@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import Swal from 'sweetalert2';
 import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Upload, Save, ChevronLeft, Loader2, Trash2 } from "lucide-react";
@@ -41,12 +42,19 @@ import { useRef } from "react";
 import { Plus } from "lucide-react";
 import { Question, useQuestions } from "@/hooks/useQuestions";
 
+interface ApiResponse<T> {
+  data?: T;
+  message?: string;
+  status?: number;
+  success?: boolean;
+}
+
 
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
   const { getQuizById, updateQuiz, isLoading: isActionLoading } = useQuizzes();
-  const { deleteQuestion } = useQuestions();
+  const { deleteQuestion, createQuestion, updateQuestion, isLoading: isQuestionsLoading } = useQuestions();
   const { uploadFile, isUploading } = useFileUpload();
   const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
@@ -55,7 +63,13 @@ export default function EditQuizPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionImageUploading, setQuestionImageUploading] = useState(false);
   const [questionImageUrl, setQuestionImageUrl] = useState("");
-  const [buatSoalMusicUrl, setBuatSoalMusicUrl] = useState("");
+    
+  // State untuk option images
+  const [optionImageUploading, setOptionImageUploading] = useState<{ [key: number]: boolean }>({});
+  const [optionImages, setOptionImages] = useState<{ [key: number]: string }>({});
+  
+  // State untuk tracking mode edit soal
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   
   // Question creation form state
   const [newQuestion, setNewQuestion] = useState<{
@@ -82,6 +96,49 @@ export default function EditQuizPage() {
       { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
     ]
   });
+
+  // Effect to set default options based on question type
+  useEffect(() => {
+    const getDefaultOptions = (type: string) => {
+      switch (type) {
+        case "TRUE_FALSE":
+          return [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+          ];
+        case "ESSAY":
+          return [
+            { text: "", points: 100, isCorrect: true, order: 1, imageUrl: "" }
+          ];
+        case "PUZZLE":
+          return [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" }
+          ];
+        case "MULTIPLE_CHOICE":
+          return [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+          ];
+        default:
+          return [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+          ];
+      }
+    };
+
+    // Only reset options when question type changes AND not in edit mode
+    if (!editingQuestionId) {
+      const defaultOptions = getDefaultOptions(newQuestion.type);
+      // Use setTimeout to defer state update and avoid cascading renders
+      setTimeout(() => {
+        setNewQuestion(prev => ({
+          ...prev,
+          options: defaultOptions
+        }));
+      }, 0);
+    }
+  }, [newQuestion.type, editingQuestionId]);
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const musicFileInputRef = useRef<HTMLInputElement>(null);
@@ -167,6 +224,11 @@ export default function EditQuizPage() {
         if (response) {
           toast.success("Gambar soal berhasil diupload!");
           setQuestionImageUrl(response.data.fileUrl);
+          // Also update newQuestion.imageUrl
+          setNewQuestion(prev => ({
+            ...prev,
+            imageUrl: response.data.fileUrl
+          }));
         }
         setQuestionImageUploading(false);
       } else {
@@ -200,7 +262,7 @@ export default function EditQuizPage() {
             }
           } else {
             form.setValue("musicFile", response.data.fileUrl);
-            toast.success("Musik berhasil diupload!");
+            toast.success("Musik quiz berhasil diupload!");
           }
         }
       }
@@ -210,6 +272,84 @@ export default function EditQuizPage() {
       if (type === "questionImage") {
         setQuestionImageUploading(false);
       }
+    }
+  };
+
+  const handleQuestionMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Upload music for question with context "question"
+      const response = await uploadFile(file, "music", "question");
+      if (response) {
+        toast.success("Musik soal berhasil diupload!");
+        // Update newQuestion.musicFile
+        setNewQuestion(prev => ({
+          ...prev,
+          musicFile: response.data.fileUrl
+        }));
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Gagal upload musik soal: " + errorMessage);
+    }
+  };
+
+  const handleAddNewQuestion = () => {
+    // Reset form untuk menambah soal baru
+    setNewQuestion({
+      text: "",
+      type: "TRUE_FALSE",
+      timeLimit: 30,
+      imageUrl: "",
+      musicFile: "",
+      options: [
+        { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+        { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+      ]
+    });
+    setQuestionImageUrl("");
+    setOptionImages({});
+    setOptionImageUploading({});
+    setEditingQuestionId(null);
+    setCurrentMode('buat_soal');
+    toast.success("Form direset untuk soal baru!");
+  };
+
+  // Fungsi khusus untuk upload option image
+  const handleOptionImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    optionIndex: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setOptionImageUploading(prev => ({ ...prev, [optionIndex]: true }));
+      
+      const response = await uploadFile(file, "image", "question");
+      if (response) {
+        toast.success(`Gambar opsi ${optionIndex + 1} berhasil diupload!`);
+        
+        // Update option image URL
+        setOptionImages(prev => ({ ...prev, [optionIndex]: response.data.fileUrl }));
+        
+        // Update newQuestion options dengan imageUrl
+        setNewQuestion(prev => ({
+          ...prev,
+          options: prev.options.map((option, index) => 
+            index === optionIndex 
+              ? { ...option, imageUrl: response.data.fileUrl }
+              : option
+          )
+        }));
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Gagal upload gambar opsi ${optionIndex + 1}: ` + errorMessage);
+    } finally {
+      setOptionImageUploading(prev => ({ ...prev, [optionIndex]: false }));
     }
   };
 
@@ -255,11 +395,72 @@ export default function EditQuizPage() {
     }
   };
 
-  const handleEditQuestion = (id: string) => {
+  const handleEditQuestion = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     // Find the question by ID
     const questionToEdit = questions.find(q => q.id === id);
     if (questionToEdit) {
-      console.log(questionToEdit)
+      // Debug: log the question structure
+      console.log("Question to edit:", questionToEdit);
+      console.log("Question answers:", questionToEdit.answers);
+      
+      // Map question data to newQuestion state
+      let mappedOptions;
+      if (questionToEdit.answers && questionToEdit.answers.length > 0) {
+        mappedOptions = questionToEdit.answers.map((answer, index) => ({
+          text: answer.text,
+          points: answer.points,
+          isCorrect: answer.isCorrect,
+          order: index + 1,
+          imageUrl: "" // TODO: Get imageUrl from API if available
+        }));
+      } else {
+        // Use default options based on question type
+        const defaultOptions = {
+          "TRUE_FALSE": [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+          ],
+          "ESSAY": [
+            { text: "", points: 100, isCorrect: true, order: 1, imageUrl: "" }
+          ],
+          "PUZZLE": [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" }
+          ],
+          "MULTIPLE_CHOICE": [
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+          ]
+        };
+        mappedOptions = defaultOptions[questionToEdit.type as keyof typeof defaultOptions] || defaultOptions.MULTIPLE_CHOICE;
+      }
+
+      // Update state synchronously using flushSync
+      flushSync(() => {
+        setNewQuestion({
+          text: questionToEdit.text || "",
+          type: questionToEdit.type || "MULTIPLE_CHOICE",
+          timeLimit: questionToEdit.timeLimit || 30,
+          imageUrl: questionToEdit.imageUrl || "",
+          musicFile: questionToEdit.musicFile || "",
+          options: mappedOptions
+        });
+
+        // Set question image URL if exists
+        if (questionToEdit.imageUrl) {
+          setQuestionImageUrl(questionToEdit.imageUrl);
+        }
+
+        // Switch to edit mode and set editing ID
+        setCurrentMode('buat_soal');
+        setEditingQuestionId(id);
+      });
+      
+      toast.success("Soal dimuat untuk diedit!");
+    } else {
+      toast.error("Soal tidak ditemukan!");
     }
   };
 
@@ -292,37 +493,86 @@ export default function EditQuizPage() {
         text: newQuestion.text,
         type: newQuestion.type,
         timeLimit: newQuestion.timeLimit,
-        voiceUrl: "", // TODO: Implement voice recording
+        voiceUrl: "/media/default.mp3",
         imageUrl: newQuestion.imageUrl,
-        musicFile: buatSoalMusicUrl || "",
+        musicFile: newQuestion.musicFile || "/media/default.mp3",
         options: newQuestion.options.map((option, index) => ({
           text: option.text,
           points: option.points,
           isCorrect: option.isCorrect,
-          order: index + 1
+          order: index + 1,
+          imageUrl: option.imageUrl || ""
         }))
       };
 
       console.log("Question Payload:", questionPayload);
+      console.log("Options with imageUrl:", newQuestion.options.map(opt => ({ 
+        text: opt.text, 
+        imageUrl: opt.imageUrl 
+      })));
       
-      // TODO: Call API to create question
-      // For now, just add to local state
-      const tempQuestion: Question = {
-        id: Date.now().toString(),
-        text: newQuestion.text,
-        type: newQuestion.type,
-        answers: newQuestion.options.map(option => ({
-          text: option.text,
-          isCorrect: option.isCorrect,
-          points: option.points
-        })),
-        correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
-        order: questions.length + 1,
-        timeLimit: newQuestion.timeLimit,
-        imageUrl: newQuestion.imageUrl
-      };
+      if (editingQuestionId) {
+        // Update existing question
+        try {
+          // Call API to update question
+          const response = await updateQuestion(params.id as string, editingQuestionId, questionPayload);
+          console.log("Update response:", response);
+          
+          const updatedQuestion: Question = {
+            id: editingQuestionId,
+            text: newQuestion.text,
+            type: newQuestion.type,
+            answers: newQuestion.options.map(option => ({
+              text: option.text,
+              isCorrect: option.isCorrect,
+              points: option.points
+            })),
+            correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
+            order: questions.find(q => q.id === editingQuestionId)?.order || questions.length + 1,
+            timeLimit: newQuestion.timeLimit,
+            imageUrl: newQuestion.imageUrl
+          };
 
-      setQuestions([...questions, tempQuestion]);
+          // Update question in the list
+          setQuestions(questions.map(q => q.id === editingQuestionId ? updatedQuestion : q));
+          
+          toast.success("Soal berhasil diperbarui!");
+        } catch (error) {
+          console.error("Error updating question:", error);
+          toast.error("Gagal memperbarui soal. Silakan coba lagi.");
+          return;
+        }
+      } else {
+        // Create new question
+        try {
+          // Call API to create question
+          const response = await createQuestion(params.id as string, questionPayload);
+          console.log("Create response:", response);
+          
+          const tempQuestion: Question = {
+            id: (response as ApiResponse<Question>)?.data?.id || Date.now().toString(),
+            text: newQuestion.text,
+            type: newQuestion.type,
+            answers: newQuestion.options.map(option => ({
+              text: option.text,
+              isCorrect: option.isCorrect,
+              points: option.points
+            })),
+            correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
+            order: questions.length + 1,
+            timeLimit: newQuestion.timeLimit,
+            imageUrl: newQuestion.imageUrl
+          };
+
+          setQuestions([...questions, tempQuestion]);
+          
+          toast.success("Soal berhasil dibuat!");
+        } catch (error) {
+          console.error("Error creating question:", error);
+          toast.error("Gagal membuat soal. Silakan coba lagi.");
+          return;
+        }
+      }
       
       // Reset form
       setNewQuestion({
@@ -337,13 +587,9 @@ export default function EditQuizPage() {
         ]
       });
       setQuestionImageUrl("");
-      setBuatSoalMusicUrl("");
-
-      toast.success("Soal berhasil dibuat!");
-      
-      // Switch back to edit mode
-      setCurrentMode('edit');
-      
+      setOptionImages({});
+      setOptionImageUploading({});
+      setEditingQuestionId(null);
     } catch (error) {
       console.error("Error creating question:", error);
       toast.error("Gagal membuat soal. Silakan coba lagi.");
@@ -354,8 +600,8 @@ export default function EditQuizPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fdf6e9]">
         <div className="flex flex-col items-center gap-2">
-          <Loader2 className="w-12 h-12 text-amber-700 animate-spin" />
-          <p className="text-amber-900 font-bold">Memuat data kuis...</p>
+          <Loader2 className="w-12 h-12 text-black animate-spin" />
+          <p className="text-black font-bold">Memuat data kuis...</p>
         </div>
       </div>
     );
@@ -375,16 +621,17 @@ export default function EditQuizPage() {
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}
-        <header className="shrink-0">
+        <header className="mb-4 md:mb-6 shrink-0">
           <div className="text-center">
             <div
-              className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
+              className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
             >
               Empat Rima
             </div>
           </div>
         </header>
+
 
         {/* Content Section */}
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
@@ -408,7 +655,7 @@ export default function EditQuizPage() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
                     <div className="flex items-center gap-2 md:gap-2">
                       <img src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
-                      <div className="text-2xl md:text-3xl text-amber-950 tracking-tight">
+                      <div className="text-2xl md:text-3xl text-black tracking-tight">
                         EDIT KUIS
                       </div>
                       <img src="/images/icon-title-r.svg" alt="icon" width={32} height={32} className="animate-bounce" />
@@ -518,12 +765,12 @@ export default function EditQuizPage() {
                           name="title"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[#5d4037] font-bold text-lg">Judul Kuis</FormLabel>
+                              <FormLabel className="text-black font-bold text-lg">Judul Kuis</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Contoh : Pre Test - Mengenal Budaya Sunda"
-                                  className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl focus:border-[#C9750A] text-#C9750A"
+                                  className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl focus:border-[#C9750A] text-black"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -536,13 +783,13 @@ export default function EditQuizPage() {
                           name="musicFile"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[#5d4037] font-bold text-lg">Musik</FormLabel>
+                              <FormLabel className="text-black font-bold text-lg">Musik</FormLabel>
                               <div className="relative">
                                 <FormControl>
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-#C9750A"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-black"
                                   />
                                 </FormControl>
                                 <input
@@ -574,12 +821,12 @@ export default function EditQuizPage() {
                         name="instructions"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[#5d4037] font-bold text-lg">Instruksi Kuis</FormLabel>
+                            <FormLabel className="text-black font-bold text-lg">Instruksi Kuis</FormLabel>
                             <FormControl>
                               <Textarea
                                 {...field}
                                 placeholder="Contoh : Kuis ini bersifat pribadi, dilarang mencontek !!"
-                                className="bg-white/80 border-[#C9750A] border-2 min-h-[150px] rounded-2xl focus:border-[#C9750A] text-#C9750A resize-none p-4"
+                                className="bg-white/80 border-[#C9750A] border-2 min-h-[150px] rounded-2xl focus:border-[#C9750A] text-black resize-none p-4"
                               />
                             </FormControl>
                             <FormMessage />
@@ -620,7 +867,7 @@ export default function EditQuizPage() {
                 // Buat Soal Form - 3-6-3 Column Layout
                 <div className="flex-1 grid grid-cols-12 gap-6">
                   {/* Section 1 - Questions List */}
-                  <div className="col-span-2 space-y-3  p-4 md:p-6 max-h-screen overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
+                  <div className="col-span-2 space-y-3 p-4 md:p-6 max-h-[calc(100vh-150px)] overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
                     <div className="space-y-2">
                       {questions.map((question, index) => (
                         <div 
@@ -637,7 +884,7 @@ export default function EditQuizPage() {
                             <img src="/file.svg" alt="Question" width={25} height={25}/>
                           )}
                           <button
-                            onClick={() => handleEditQuestion(question.id)}
+                            onClick={(e) => handleEditQuestion(e, question.id)}
                             className="rounded-sm cursor-pointer bg-blue-500/20 absolute right-9 top-2 transition-opacity text-blue-500 hover:text-blue-700 p-1"
                             title="Edit Soal"
                           >
@@ -661,20 +908,23 @@ export default function EditQuizPage() {
                         </div>
                       )}
                     </div>
-                    <button className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors">
+                    <button 
+                      onClick={handleAddNewQuestion}
+                      className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
+                    >
                       <Plus size={16}/> Tambah Soal
                     </button>
                   </div>
 
                   {/* Section 2 - Question Input & Image Upload */}
-                  <div className="col-span-7 space-y-3  py-6 p-2 max-h-screen overflow-y-auto pr-2">
+                  <div className="col-span-7 space-y-3  py-6 p-2 max-h-[calc(100vh-150px)] overflow-y-auto pr-2">
                     {/* Question Text Input */}
                     <div>
-                      <label className="block text-[#5d4037] font-bold mb-2">Pertanyaan</label>
+                      <label className="block text-black font-bold mb-2">Pertanyaan</label>
                       <input 
                         value={newQuestion.text}
                         onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
-                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 py-2 text-#C9750A" 
+                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 py-2 text-black" 
                         placeholder="Tulis soal anda"
                       />
                     </div>
@@ -723,125 +973,162 @@ export default function EditQuizPage() {
                       
                       {/* Options */}
                       <div className="w-full">
-                        <div className="flex justify-between w-full items-center mb-2">
-                          <label className="block text-[#5d4037] font-bold">Jawaban</label>
+                        <div className="flex justify-between w-full items-center my-2">
+                          <label className="text-xs block text-gray-600 font-bold">Jawaban</label>
                           <span className="text-xs text-gray-600">Checklist satu jawaban yang benar</span>
                         </div>
-                        <div className="space-y-3 grid grid-cols-2 gap-4">
+                        <div className={`grid ${newQuestion.options.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-8`}>
                           {newQuestion.options.map((option, index: number) => (
-                            <div key={index} className="col-span-1 border-2 border-[#C9750A] rounded-lg p-3 bg-white">
-                              <div className="flex items-start gap-3">
-                                {/* Correct Answer Checkbox */}
-                                <div className="flex items-center mt-1">
-                                  <input
-                                    type="checkbox"
-                                    checked={option.isCorrect}
-                                    onChange={(e) => {
-                                      const updatedOptions = newQuestion.options.map((opt, i) => 
-                                        i === index ? {...opt, isCorrect: e.target.checked} : opt
-                                      );
-                                      setNewQuestion({...newQuestion, options: updatedOptions});
-                                    }}
-                                    className="w-4 h-4 text-[#C9750A] border-[#C9750A] rounded focus:ring-[#C9750A]"
-                                  />
-                                </div>
-                                
-                                {/* Option Content */}
-                                <div className="flex-1">
-                                  {option.imageUrl ? (
-                                    // Display uploaded image
-                                    <div className="w-full h-20 border-2 border-[#C9750A] rounded-lg overflow-hidden mb-2">
-                                      <img 
-                                        src={option.imageUrl} 
-                                        alt={`Option ${index + 1}`} 
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                  ) : (
-                                    // Text input for option
+                            <div key={index} className="bg-[#784421] border border-[#784421]/10 rounded-lg p-4 relative shadow-md h-full flex flex-col">
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedOptions = newQuestion.options.filter((_, i) => i !== index);
+                                  setNewQuestion({...newQuestion, options: updatedOptions});
+                                }}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
+                                title="Hapus jawaban"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              
+                              {/* Input Group */}
+                              <div className="space-y-3 mt-auto">
+                                {/* Baris pertama: Upload + Points + Checkbox */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  {/* Upload Button */}
+                                  <div className="w-8 h-8 shrink-0 relative">
                                     <input
-                                      type="text"
-                                      value={option.text}
-                                      onChange={(e) => {
-                                        const updatedOptions = newQuestion.options.map((opt, i: number) => 
-                                          i === index ? {...opt, text: e.target.value} : opt
-                                        );
-                                        setNewQuestion({...newQuestion, options: updatedOptions});
-                                      }}
-                                      className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 text-#C9750A mb-2"
-                                      placeholder={`Jawaban ${index + 1}`}
+                                      type="file"
+                                      id={`option-image-${index}`}
+                                      className="hidden"
+                                      accept="image/*"
+                                      onChange={(e) => handleOptionImageUpload(e, index)}
                                     />
-                                  )}
+                                    <img 
+                                      src="/images/upload.svg" 
+                                      alt="Upload" 
+                                      className="w-full h-full cursor-pointer hover:opacity-80 transition-opacity bg-amber-800" 
+                                      onClick={() => document.getElementById(`option-image-${index}`)?.click()}
+                                    />
+                                    {optionImageUploading[index] && (
+                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      </div>
+                                    )}
+                                  </div>
                                   
-                                  {/* Image Upload Button */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      // TODO: Implement option image upload
-                                      console.log(`Upload image for option ${index + 1}`);
-                                    }}
-                                    className="text-xs text-[#C9750A] hover:text-[#5d4037] mb-2"
-                                  >
-                                    {option.imageUrl ? "Ganti Gambar" : "Upload Gambar"}
-                                  </button>
-                                </div>
-                                
-                                {/* Points Input */}
-                                <div className="flex flex-col items-end">
-                                  <label className="text-xs text-gray-600 mb-1">Points</label>
+                                  {/* Points Input */}
                                   <input
                                     type="number"
                                     value={option.points}
                                     onChange={(e) => {
-                                      const updatedOptions = newQuestion.options.map((opt, i: number) => 
-                                        i === index ? {...opt, points: parseInt(e.target.value) || 0} : opt
+                                      const inputValue = e.target.value;
+                                      const updatedOptions = newQuestion.options.map((opt, i: number) => {
+                                        if (i === index) {
+                                          // Jika input kosong, set ke 0
+                                          if (inputValue === '') {
+                                            return {...opt, points: 0};
+                                          }
+                                          // Parse input, jika tidak valid gunakan 0
+                                          const parsedValue = parseInt(inputValue);
+                                          return {...opt, points: isNaN(parsedValue) ? 0 : parsedValue};
+                                        }
+                                        return opt;
+                                      });
+                                      setNewQuestion({...newQuestion, options: updatedOptions});
+                                    }}
+                                    className="flex-1 h-8 rounded px-2 text-center text-white text-sm flex-shrink-0"
+                                    min="0"
+                                    placeholder="0"
+                                  />
+                                  
+                                  {/* Checkbox */}
+                                  <div 
+                                    className="w-8 h-8 rounded-md bg-white flex items-center justify-center shadow-md cursor-pointer flex-shrink-0 hover:shadow-lg transition-shadow"
+                                    onClick={() => {
+                                      const updatedOptions = newQuestion.options.map((opt, i) => 
+                                        i === index ? {...opt, isCorrect: !opt.isCorrect} : opt
                                       );
                                       setNewQuestion({...newQuestion, options: updatedOptions});
                                     }}
-                                    className="w-16 h-8 border-[#C9750A] border-2 rounded px-2 text-center text-#C9750A text-sm"
-                                    min="0"
-                                  />
+                                    title={option.isCorrect ? "Jawaban Benar" : "Jawaban Salah"}
+                                  >
+                                    {option.isCorrect ? (
+                                      <img src="/images/checkbox-checked.svg" alt="Checked" className="w-full h-full bg-green-400 rounded-md" />
+                                    ) : (
+                                      <img src="/images/checkbox-unchecked.svg" alt="Unchecked" className="w-full h-full bg-amber-800 rounded-md" />
+                                    )}
+                                  </div>
                                 </div>
+                              </div>
+
+                              <div className="bg-[#6B3F2B] border border-[#6B3F2B]/30 shadow-2xl rounded-lg p-4 flex-1 flex items-center justify-center min-h-[150px]">
+                                {option.imageUrl ? (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <img 
+                                      src={option.imageUrl} 
+                                      alt={`Option ${index + 1}`} 
+                                      className="max-w-full max-h-full object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <textarea
+                                    value={option.text}
+                                    onChange={(e) => {
+                                      const updatedOptions = newQuestion.options.map((opt, i: number) => 
+                                        i === index ? {...opt, text: e.target.value} : opt
+                                      );
+                                      setNewQuestion({...newQuestion, options: updatedOptions});
+                                    }}
+                                    className="w-full h-full bg-transparent rounded-md px-3 py-2 text-white placeholder-white/70 text-sm resize-none text-center"
+                                    placeholder={`Tulis jawaban ${index + 1}`}
+                                    style={{ minHeight: '100px' }}
+                                  />
+                                )}
                               </div>
                             </div>
                           ))}
                         </div>
                         
-                        {/* Add Option Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newOption = {
-                              text: "",
-                              points: 0,
-                              isCorrect: false,
-                              order: newQuestion.options.length + 1,
-                              imageUrl: ""
-                            };
-                            setNewQuestion({
-                              ...newQuestion,
-                              options: [...newQuestion.options, newOption]
-                            });
-                          }}
-                          className="w-full mt-3 border-2 border-dashed border-[#C9750A] rounded-lg p-3 text-[#C9750A] hover:bg-[#C9750A] hover:text-white transition-colors"
-                        >
-                          + Tambah Jawaban
-                        </button>
+                        {/* Add Option Button - Only for PUZZLE type */}
+                        {newQuestion.type === "PUZZLE" || newQuestion.type === "MULTIPLE_CHOICE" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newOption = {
+                                text: "",
+                                points: 0,
+                                isCorrect: false,
+                                order: newQuestion.options.length + 1,
+                                imageUrl: ""
+                              };
+                              setNewQuestion({
+                                ...newQuestion,
+                                options: [...newQuestion.options, newOption]
+                              });
+                            }}
+                            className="w-full mt-3 bg-[#8D6E63]/50 border-2 border-dashed border-[#8D6E63] rounded-lg p-4 text-white hover:bg-[#8D6E63] transition-colors shadow-md"
+                          >
+                            + Tambah Jawaban
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Section 3 - Settings & Answer Cards */}
-                  <div className="col-span-3 space-y-3 p-4 md:p-6 max-h-screen overflow-y-auto pl-2 border-l border-[#C9750A]">
+                  <div className="col-span-3 space-y-3 p-4 md:p-6 max-h-[calc(100vh-150px)] overflow-y-auto-auto pl-2 border-l border-[#C9750A]">
                     {/* Settings Section */}
                     <div className="border-2 border-[#C9750A] rounded-2xl p-2">
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-#C9750A font-bold mb-2">Tipe soal</label>
+                          <label className="block text-black font-bold mb-2">Tipe soal</label>
                           <select 
                             value={newQuestion.type}
                             onChange={(e) => setNewQuestion({...newQuestion, type: e.target.value as "TRUE_FALSE" | "MULTIPLE_CHOICE" | "ESSAY" | "PUZZLE"})}
-                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]"
+                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-black"
                           >
                             <option value="TRUE_FALSE">Benar atau Salah</option>
                             <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
@@ -849,11 +1136,11 @@ export default function EditQuizPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[#5d4037] font-bold mb-2">Waktu</label>
+                          <label className="block text-black font-bold mb-2">Waktu</label>
                           <select 
                             value={newQuestion.timeLimit}
                             onChange={(e) => setNewQuestion({...newQuestion, timeLimit: parseInt(e.target.value)})}
-                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]"
+                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-black"
                           >
                             <option value={10}>10 Detik</option>
                             <option value={20}>20 Detik</option>
@@ -861,20 +1148,20 @@ export default function EditQuizPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[#5d4037] font-bold mb-2">Musik</label>
+                          <label className="block text-black font-bold mb-2">Musik</label>
                           <div className="relative">
                             <input 
                               type="text" 
                               value="Default by Tema"
                               readOnly
-                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-10 text-[#C9750A]"
+                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-10 text-black"
                             />
                             <input
                               type="file"
                               ref={buatSoalMusicFileInputRef}
                               className="hidden"
                               accept="audio/*"
-                              onChange={(e) => handleFileUpload(e, "music")}
+                              onChange={handleQuestionMusicUpload}
                             />
                             <button 
                               onClick={() => buatSoalMusicFileInputRef.current?.click()}
@@ -930,7 +1217,7 @@ export default function EditQuizPage() {
       {/* Settings/Volume Button */}
       <div className="fixed bottom-4 right-4 z-50">
         <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
-          <svg className="w-6 h-6 md:w-7 md:h-7 text-amber-700 group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-6 h-6 md:w-7 md:h-7 text-black group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.983 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "@/lib/api";
 
 export interface Question {
   id: string;
@@ -67,7 +67,7 @@ export function useQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiPut(`/questions/${questionId}`, data);
+      const response = await apiPatch(`/questions/${questionId}`, data);
       return response;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Gagal memperbarui soal";

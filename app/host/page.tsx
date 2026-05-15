@@ -168,16 +168,16 @@ export default function DashboardAdminPage() {
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <div className="w-16 h-16 border-4 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-amber-900 font-bold animate-pulse">Memuat kuis seru...</p>
+                  <div className="text-black font-bold animate-pulse">Memuat kuis seru...</div>
                   </div>
                 ) : error ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-4">
                     <span className="text-5xl mb-4">😰</span>
-                    <p className="text-red-600 font-bold mb-2">Waduh, ada masalah!</p>
-                    <p className="text-amber-800 text-sm">{error}</p>
+                    <p className="text-black font-bold mb-2">Waduh, ada masalah!</p>
+                    <p className="text-black text-sm">{error}</p>
                     <button
                       onClick={() => window.location.reload()}
-                      className="mt-4 px-6 py-2 bg-amber-700 text-white rounded-full hover:bg-amber-800 transition-colors"
+                      className="mt-4 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
                     >
                       Coba Lagi
                     </button>
@@ -185,8 +185,8 @@ export default function DashboardAdminPage() {
                 ) : quizzes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <span className="text-6xl mb-4">🏜️</span>
-                    <p className="text-amber-900 font-bold">Belum ada kuis nih.</p>
-                    <p className="text-amber-700 text-sm">Ayo cari dengan kata kunci lain!</p>
+                    <p className="text-black font-bold">Belum ada kuis nih.</p>
+                    <p className="text-black text-sm">Ayo cari dengan kata kunci lain!</p>
                   </div>
                 ) : (
                   <>
@@ -227,15 +227,15 @@ export default function DashboardAdminPage() {
                             </div>
                           </div>
                           <div className="p-4 flex flex-col flex-1 bg-amber-50/30">
-                            <h3 className="font-bold text-amber-950 mb-2 text-sm md:text-base line-clamp-2 leading-snug">
+                            <h3 className="font-bold text-black mb-2 text-sm md:text-base line-clamp-2 leading-snug">
                               {quiz.title}
                             </h3>
                             <div className="mt-auto">
-                              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              <p className="text-xs font-semibold text-black flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-black" />
                                 {typeof quiz.questions === 'number' ? quiz.questions : (Array.isArray(quiz.questions) ? quiz.questions.length : 0)} Pertanyaan
                               </p>
-                              <p className="text-[10px] md:text-xs text-amber-600/80 mt-1">
+                              <p className="text-[10px] md:text-xs text-black/80 mt-1">
                                 By {quiz.author || "Anonim"}
                               </p>
                             </div>
@@ -249,18 +249,18 @@ export default function DashboardAdminPage() {
                       {isFetchingMore ? (
                         <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-[#C9750A] shadow-sm">
                           <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
-                          <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
+                          <span className="text-black font-bold text-sm">Memuat lebih banyak...</span>
                         </div>
                       ) : hasMore ? (
                         <div className="flex justify-center py-4">
                           <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full border border-[#C9750A] shadow-sm">
                             <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
-                            <span className="text-amber-900 font-bold text-sm">Memuat lebih banyak...</span>
+                            <span className="text-black font-bold text-sm">Memuat lebih banyak...</span>
                           </div>
                         </div>
                       ) : quizzes.length > 0 ? (
                         <div className="text-center py-4">
-                          <div className="text-amber-700/60 text-sm font-medium">Sudah semua kuis dimuat ✨</div>
+                          <div className="text-black text-sm font-medium">Sudah semua kuis dimuat ✨</div>
                         </div>
                       ) : null}
                     </div>
