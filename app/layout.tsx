@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
+import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 
 export const metadata: Metadata = {
   title: "Empat Rima",
@@ -20,8 +21,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-slate-950 text-slate-50">
         <SessionProvider>
-          {children}
-          <Toaster />
+          <MusicPlayerProvider>
+            {children}
+            <Toaster />
+          </MusicPlayerProvider>
         </SessionProvider>
       </body>
     </html>
