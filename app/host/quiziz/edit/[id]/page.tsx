@@ -106,6 +106,8 @@ export default function EditQuizPage() {
       if (!params.id || themes.length === 0) return;
       try {
         const response = await getQuizById(params.id as string);
+        if (!response) return;
+        
         const quizData: Quiz = ('data' in response && response.data) ? response.data : response as Quiz;
         
         // Set questions state
