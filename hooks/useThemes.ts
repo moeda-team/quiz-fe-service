@@ -9,6 +9,7 @@ export interface Theme {
   name: string;
   imageUrl: string;
   description?: string;
+  musicFile?: string;
   created_at?: string;
   updated_at?: string;
 }

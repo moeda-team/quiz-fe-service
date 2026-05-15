@@ -40,12 +40,15 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useThemes } from "@/hooks/useThemes";
 import { useRouter } from "next/navigation";
 import { useRef, useEffect } from "react";
+import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 
 export default function CreateQuizPage() {
   const router = useRouter();
   const { createQuiz, isLoading: isMutating } = useQuizzes();
   const { uploadFile, isUploading } = useFileUpload();
   const { themes, isLoading: isThemesLoading, addTheme, refreshThemes } = useThemes();
+  const { setQuizMusic, togglePlayPause, pauseMusic, isPlaying, currentMusicUrl } = useMusicPlayer();
   const [selectedTheme, setSelectedTheme] = useState<string>("");
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
@@ -119,16 +122,29 @@ export default function CreateQuizPage() {
     }
   };
 
+  const handlePlayMusic = () => {
+    const musicUrl = form.getValues("musicFile") || "/media/default.mp3";
+    
+    setQuizMusic(musicUrl);
+    
+    // Force play after setting the music
+    setTimeout(() => {
+      togglePlayPause();
+    }, 100);
+  };
+
   const onSubmit = async (data: QuizFormValues) => {
     try {
       const payload = {
         title: data.title,
-        description: data.instructions,
+        instructions: data.instructions,
         coverImage: data.coverImage,
+        musicFile: data.musicFile || "/media/default.mp3",
         questions: [], // Empty array for new quiz
         isPublished: false,
       };
 
+      console.log('Create Quiz Payload:', payload);
       const res = await createQuiz(payload);
       
       if (res?.id) {
@@ -332,7 +348,9 @@ export default function CreateQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-black"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-24 focus:border-[#C9750A] text-black"
+                                    readOnly
+                                    onChange={(e) => handleFileUpload(e, "music")}
                                   />
                                 </FormControl>
                                 <input
@@ -344,14 +362,30 @@ export default function CreateQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute right-0 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <Upload size={20} />
+                                    <Upload size={20} color="#5d4037" />
                                   )}
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={handlePlayMusic}
+                                  className="absolute right-0 top-0 h-full w-12 bg-[#795548] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#5d4037] transition-colors border-l border-white/20"
+                                  title="Play Music"
+                                >
+                                  {isPlaying && currentMusicUrl === field.value ? (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </button>
                               </div>
                               <FormMessage />
                             </FormItem>
@@ -407,14 +441,8 @@ export default function CreateQuizPage() {
         <ChevronLeft size={24} />
       </Link>
 
-      {/* Settings/Volume Button */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
-          <svg className="w-6 h-6 md:w-7 md:h-7 text-black group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
-      </div>
+      {/* Global Music Player */}
+      <GlobalMusicPlayer />
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

@@ -41,6 +41,8 @@ import { useThemes } from "@/hooks/useThemes";
 import { useRef } from "react";
 import { Plus } from "lucide-react";
 import { Question, useQuestions } from "@/hooks/useQuestions";
+import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 
 interface ApiResponse<T> {
   data?: T;
@@ -70,6 +72,9 @@ export default function EditQuizPage() {
   
   // State untuk tracking mode edit soal
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  
+  // Global music player
+  const { setQuizMusic, togglePlayPause, pauseMusic, isPlaying, currentMusicUrl } = useMusicPlayer();
   
   // Question creation form state
   const [newQuestion, setNewQuestion] = useState<{
@@ -208,6 +213,13 @@ export default function EditQuizPage() {
     }
   }, [themes, selectedTheme, form, isPageLoading]);
 
+  // Stop music when switching to 'buat_soal' mode (but allow manual play)
+  useEffect(() => {
+    if (currentMode === 'buat_soal' && !isPlaying) {
+      pauseMusic();
+    }
+  }, [currentMode, pauseMusic, isPlaying]);
+
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "image" | "music" | "questionImage"
@@ -296,18 +308,45 @@ export default function EditQuizPage() {
     }
   };
 
+  const handlePlayMusic = () => {
+    const musicUrl = form.getValues("musicFile") || "/media/default.mp3";
+    setQuizMusic(musicUrl);
+    
+    // Force play after setting the music
+    setTimeout(() => {
+      togglePlayPause();
+    }, 100);
+  };
+
+  const handlePlayQuestionMusic = () => {
+    const musicUrl = newQuestion.musicFile || "/media/default.mp3";
+    console.log('handlePlayQuestionMusic called');
+    console.log('newQuestion.musicFile:', newQuestion.musicFile);
+    console.log('Final musicUrl:', musicUrl);
+    console.log('Current isPlaying:', isPlaying);
+    console.log('Current currentMusicUrl:', currentMusicUrl);
+    console.log('Current mode:', currentMode);
+    
+    setQuizMusic(musicUrl);
+    
+    // Force play after setting the music
+    setTimeout(() => {
+      console.log('About to toggle play state for question music');
+      togglePlayPause();
+    }, 100);
+  };
+
   const handleAddNewQuestion = () => {
-    // Reset form untuk menambah soal baru
     setNewQuestion({
       text: "",
-      type: "TRUE_FALSE",
+      type: "MULTIPLE_CHOICE",
       timeLimit: 30,
-      imageUrl: "",
-      musicFile: "",
       options: [
         { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
         { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
-      ]
+      ],
+      imageUrl: "",
+      musicFile: ""
     });
     setQuestionImageUrl("");
     setOptionImages({});
@@ -398,6 +437,7 @@ export default function EditQuizPage() {
   const handleEditQuestion = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
+    pauseMusic();
     
     // Find the question by ID
     const questionToEdit = questions.find(q => q.id === id);
@@ -465,6 +505,9 @@ export default function EditQuizPage() {
   };
 
   const onsubmitSoal = async () => {
+    // Stop music when saving question
+    pauseMusic();
+    
     try {
       // Validate required fields
       if (!newQuestion.text.trim()) {
@@ -789,7 +832,8 @@ export default function EditQuizPage() {
                                   <Input
                                     {...field}
                                     placeholder="Naik Odong Odong.mp3"
-                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-12 focus:border-[#C9750A] text-black"
+                                    className="bg-white/80 border-[#C9750A] border-2 h-12 rounded-xl pr-24 focus:border-[#C9750A] text-black"
+                                    readOnly
                                   />
                                 </FormControl>
                                 <input
@@ -801,14 +845,30 @@ export default function EditQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute right-0 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <Upload size={20} />
+                                    <Upload size={20} color="#5d4037" />
                                   )}
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={handlePlayMusic}
+                                  className="absolute right-0 top-0 h-full w-12 bg-[#795548] rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#5d4037] transition-colors border-l border-white/20"
+                                  title="Play Music"
+                                >
+                                  {isPlaying && currentMusicUrl === field.value ? (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </button>
                               </div>
                               <FormMessage />
                             </FormItem>
@@ -852,6 +912,7 @@ export default function EditQuizPage() {
                       <Button
                         type="button"
                         onClick={() => {
+                          pauseMusic();
                           setCurrentMode('buat_soal');
                         }}
                         className="bg-amber-600 cursor-pointer hover:bg-amber-700 text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
@@ -909,7 +970,10 @@ export default function EditQuizPage() {
                       )}
                     </div>
                     <button 
-                      onClick={handleAddNewQuestion}
+                      onClick={() => {
+                        handleAddNewQuestion();
+                        pauseMusic();
+                      }}
                       className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
                     >
                       <Plus size={16}/> Tambah Soal
@@ -1152,9 +1216,9 @@ export default function EditQuizPage() {
                           <div className="relative">
                             <input 
                               type="text" 
-                              value="Default by Tema"
+                              value={newQuestion.musicFile || "Default by Tema"}
                               readOnly
-                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-10 text-black"
+                              className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 pr-20 text-black"
                             />
                             <input
                               type="file"
@@ -1165,12 +1229,28 @@ export default function EditQuizPage() {
                             />
                             <button 
                               onClick={() => buatSoalMusicFileInputRef.current?.click()}
-                              className="absolute right-2 top-2 text-[#C9750A] hover:text-[#5d4037]"
+                              className="absolute border-l right-8 top-0 h-full w-8 bg-[#C9750A] rounded-r-lg flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                             >
                               {isUploading ? (
-                                <div className="w-5 h-5 border-2 border-[#C9750A] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <Upload size={20} />
+                                <Upload size={16} color="#5d4037" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handlePlayQuestionMusic}
+                              className="absolute right-0 top-0 h-full w-8 bg-[#795548] rounded-r-lg flex items-center justify-center text-white cursor-pointer hover:bg-[#5d4037] transition-colors border-l border-white/20"
+                              title="Play Question Music"
+                            >
+                              {isPlaying && currentMusicUrl === newQuestion.musicFile ? (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
                               )}
                             </button>
                           </div>
@@ -1192,6 +1272,7 @@ export default function EditQuizPage() {
                         className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer hover:bg-[#C9750A] border border-[#C9750A] text-[#C9750A] hover:text-white rounded-sm p-2 font-bold transition-colors"
                         type="button"
                         onClick={() => {
+                          pauseMusic();
                           setCurrentMode('edit');
                         }}
                       >
@@ -1214,14 +1295,8 @@ export default function EditQuizPage() {
         <ChevronLeft size={24} />
       </Link>
 
-      {/* Settings/Volume Button */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <button className="w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90">
-          <svg className="w-6 h-6 md:w-7 md:h-7 text-black group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.983 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
-      </div>
+      {/* Global Music Player */}
+      <GlobalMusicPlayer />
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

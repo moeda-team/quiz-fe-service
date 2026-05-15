@@ -13,20 +13,28 @@ export default function GlobalMusicPlayer() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  console.log('GlobalMusicPlayer render:', { currentMusicUrl, isPlaying });
+
   // Handle audio loading and playback
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.play().catch(console.error);
+        console.log('GlobalMusicPlayer: Attempting to play:', currentMusicUrl);
+        audioRef.current.play().catch(error => {
+          console.error('GlobalMusicPlayer: Play failed:', error);
+        });
       } else {
+        console.log('GlobalMusicPlayer: Pausing audio');
         audioRef.current.pause();
       }
     }
-  }, [isPlaying]);
+  }, [isPlaying, currentMusicUrl]);
 
-  // Load audio when URL changes
+  // Load audio when URL changes (only if different from current)
   useEffect(() => {
-    if (audioRef.current && currentMusicUrl) {
+    if (audioRef.current && currentMusicUrl && audioRef.current.src !== new URL(currentMusicUrl, window.location.origin).href) {
+      console.log('GlobalMusicPlayer: Loading new audio:', currentMusicUrl);
+      audioRef.current.src = currentMusicUrl;
       audioRef.current.load();
     }
   }, [currentMusicUrl]);
