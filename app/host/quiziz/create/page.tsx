@@ -144,7 +144,6 @@ export default function CreateQuizPage() {
         isPublished: false,
       };
 
-      console.log('Create Quiz Payload:', payload);
       const res = await createQuiz(payload);
       
       if (res?.id) {
