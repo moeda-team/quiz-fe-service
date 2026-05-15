@@ -52,5 +52,11 @@ export interface QuizApiResponse {
   image?: string;
 }
 
+// Response interface for quiz operations
+export interface QuizResponse {
+  data: Quiz;
+  statusCode: string;
+}
+
 // For dynamic API responses that may have varying structures
 export type QuizDynamicResponse = DynamicObject & QuizApiResponse;

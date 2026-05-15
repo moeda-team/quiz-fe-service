@@ -205,7 +205,7 @@ export default function DashboardAdminPage() {
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                             {/* Action Buttons Overlay */}
-                            <div className="absolute top-2 right-2 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 z-20 lg:group-hover:opacity-100 transition-opacity">
                               <Link
                                 href={`/host/quiziz/edit/${quiz.id}`}
                                 className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-amber-700 shadow-md hover:bg-amber-700 hover:text-white transition-all"
