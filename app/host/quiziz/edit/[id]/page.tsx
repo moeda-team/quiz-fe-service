@@ -320,18 +320,10 @@ export default function EditQuizPage() {
 
   const handlePlayQuestionMusic = () => {
     const musicUrl = newQuestion.musicFile || "/media/default.mp3";
-    console.log('handlePlayQuestionMusic called');
-    console.log('newQuestion.musicFile:', newQuestion.musicFile);
-    console.log('Final musicUrl:', musicUrl);
-    console.log('Current isPlaying:', isPlaying);
-    console.log('Current currentMusicUrl:', currentMusicUrl);
-    console.log('Current mode:', currentMode);
-    
     setQuizMusic(musicUrl);
     
     // Force play after setting the music
     setTimeout(() => {
-      console.log('About to toggle play state for question music');
       togglePlayPause();
     }, 100);
   };
@@ -438,13 +430,10 @@ export default function EditQuizPage() {
     e.preventDefault();
     e.stopPropagation();
     pauseMusic();
-    
+
     // Find the question by ID
     const questionToEdit = questions.find(q => q.id === id);
     if (questionToEdit) {
-      // Debug: log the question structure
-      console.log("Question to edit:", questionToEdit);
-      console.log("Question answers:", questionToEdit.answers);
       
       // Map question data to newQuestion state
       let mappedOptions;
@@ -547,19 +536,12 @@ export default function EditQuizPage() {
           imageUrl: option.imageUrl || ""
         }))
       };
-
-      console.log("Question Payload:", questionPayload);
-      console.log("Options with imageUrl:", newQuestion.options.map(opt => ({ 
-        text: opt.text, 
-        imageUrl: opt.imageUrl 
-      })));
       
       if (editingQuestionId) {
         // Update existing question
         try {
           // Call API to update question
           const response = await updateQuestion(params.id as string, editingQuestionId, questionPayload);
-          console.log("Update response:", response);
           
           const updatedQuestion: Question = {
             id: editingQuestionId,
@@ -590,7 +572,6 @@ export default function EditQuizPage() {
         try {
           // Call API to create question
           const response = await createQuestion(params.id as string, questionPayload);
-          console.log("Create response:", response);
           
           const tempQuestion: Question = {
             id: (response as ApiResponse<Question>)?.data?.id || Date.now().toString(),

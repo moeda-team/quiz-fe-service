@@ -35,19 +35,16 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   };
 
   const togglePlayPause = () => {
-    console.log('MusicPlayerContext: togglePlayPause called, current isPlaying:', isPlaying);
     setIsPlaying(!isPlaying);
   };
 
   const setQuizMusic = (url: string) => {
-    console.log('MusicPlayerContext: setQuizMusic called with:', url);
     setCurrentMusicUrl(url);
     setCurrentSource('quiz');
     setCurrentSourceName('Quiz Music');
   };
 
   const setQuestionMusic = (questionId: string, questionText: string, musicUrl: string) => {
-    console.log('MusicPlayerContext: setQuestionMusic called with:', { questionId, musicUrl });
     setCurrentMusicUrl(musicUrl);
     setCurrentSource('question');
     setCurrentSourceName(`Soal: ${questionText.substring(0, 30)}...`);
