@@ -56,6 +56,32 @@ export default function EditQuizPage() {
   const [questionImageUploading, setQuestionImageUploading] = useState(false);
   const [questionImageUrl, setQuestionImageUrl] = useState("");
   const [buatSoalMusicUrl, setBuatSoalMusicUrl] = useState("");
+  
+  // Question creation form state
+  const [newQuestion, setNewQuestion] = useState<{
+    text: string;
+    type: "TRUE_FALSE" | "MULTIPLE_CHOICE" | "ESSAY" | "PUZZLE";
+    timeLimit: number;
+    options: Array<{
+      text: string;
+      isCorrect: boolean;
+      order: number;
+      points: number;
+      imageUrl?: string;
+    }>;
+    musicFile?: string;
+    imageUrl?: string;
+  }>({
+    text: "",
+    type: "MULTIPLE_CHOICE",
+    timeLimit: 30,
+    imageUrl: "",
+    musicFile: "",
+    options: [
+      { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+      { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+    ]
+  });
 
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const musicFileInputRef = useRef<HTMLInputElement>(null);
@@ -232,6 +258,93 @@ export default function EditQuizPage() {
     const questionToEdit = questions.find(q => q.id === id);
     if (questionToEdit) {
       console.log(questionToEdit)
+    }
+  };
+
+  const onsubmitSoal = async () => {
+    try {
+      // Validate required fields
+      if (!newQuestion.text.trim()) {
+        toast.error("Pertanyaan tidak boleh kosong!");
+        return;
+      }
+
+      // Validate at least one correct answer
+      const hasCorrectAnswer = newQuestion.options.some(option => option.isCorrect);
+      if (!hasCorrectAnswer) {
+        toast.error("Pilih setidaknya satu jawaban yang benar!");
+        return;
+      }
+
+      // Validate option texts
+      const hasEmptyOption = newQuestion.options.some(option => !option.text.trim() && !option.imageUrl);
+      if (hasEmptyOption) {
+        toast.error("Semua jawaban harus memiliki teks atau gambar!");
+        return;
+      }
+
+      // Create question payload
+      const questionPayload = {
+        quizId: params.id as string,
+        order: questions.length + 1,
+        text: newQuestion.text,
+        type: newQuestion.type,
+        timeLimit: newQuestion.timeLimit,
+        voiceUrl: "", // TODO: Implement voice recording
+        imageUrl: newQuestion.imageUrl,
+        musicFile: buatSoalMusicUrl || "",
+        options: newQuestion.options.map((option, index) => ({
+          text: option.text,
+          points: option.points,
+          isCorrect: option.isCorrect,
+          order: index + 1
+        }))
+      };
+
+      console.log("Question Payload:", questionPayload);
+      
+      // TODO: Call API to create question
+      // For now, just add to local state
+      const tempQuestion: Question = {
+        id: Date.now().toString(),
+        text: newQuestion.text,
+        type: newQuestion.type,
+        answers: newQuestion.options.map(option => ({
+          text: option.text,
+          isCorrect: option.isCorrect,
+          points: option.points
+        })),
+        correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
+        order: questions.length + 1,
+        timeLimit: newQuestion.timeLimit,
+        imageUrl: newQuestion.imageUrl
+      };
+
+      setQuestions([...questions, tempQuestion]);
+      
+      // Reset form
+      setNewQuestion({
+        text: "",
+        type: "TRUE_FALSE",
+        timeLimit: 30,
+        imageUrl: "",
+        musicFile: "",
+        options: [
+          { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+          { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+        ]
+      });
+      setQuestionImageUrl("");
+      setBuatSoalMusicUrl("");
+
+      toast.success("Soal berhasil dibuat!");
+      
+      // Switch back to edit mode
+      setCurrentMode('edit');
+      
+    } catch (error) {
+      console.error("Error creating question:", error);
+      toast.error("Gagal membuat soal. Silakan coba lagi.");
     }
   };
 
@@ -505,7 +618,7 @@ export default function EditQuizPage() {
                 // Buat Soal Form - 3-6-3 Column Layout
                 <div className="flex-1 grid grid-cols-12 gap-6">
                   {/* Section 1 - Questions List */}
-                  <div className="col-span-3 space-y-3  p-4 md:p-6 max-h-screen overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
+                  <div className="col-span-2 space-y-3  p-4 md:p-6 max-h-screen overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
                     <div className="space-y-2">
                       {questions.map((question, index) => (
                         <div 
@@ -552,19 +665,21 @@ export default function EditQuizPage() {
                   </div>
 
                   {/* Section 2 - Question Input & Image Upload */}
-                  <div className="col-span-4 space-y-3  py-6 p-2 max-h-screen overflow-y-auto pr-2">
-                    {/* form input question */}
+                  <div className="col-span-7 space-y-3  py-6 p-2 max-h-screen overflow-y-auto pr-2">
+                    {/* Question Text Input */}
                     <div>
+                      <label className="block text-[#5d4037] font-bold mb-2">Pertanyaan</label>
                       <input 
-                        type="text" 
-                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 text-#C9750A" 
+                        value={newQuestion.text}
+                        onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
+                        className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 py-2 text-#C9750A" 
                         placeholder="Tulis soal anda"
                       />
                     </div>
                     
                     {/* Image Upload */}
-                    <div>
-                      <div className="relative">
+                    <div className="flex flex-col justify-center items-center">
+                      <div className="w-80">
                         <input
                           type="file"
                           ref={questionImageInputRef}
@@ -603,28 +718,144 @@ export default function EditQuizPage() {
                           </button>
                         }
                       </div>
+                      
+                      {/* Options */}
+                      <div className="w-full">
+                        <div className="flex justify-between w-full items-center mb-2">
+                          <label className="block text-[#5d4037] font-bold">Jawaban</label>
+                          <span className="text-xs text-gray-600">Checklist satu jawaban yang benar</span>
+                        </div>
+                        <div className="space-y-3 grid grid-cols-2 gap-4">
+                          {newQuestion.options.map((option, index: number) => (
+                            <div key={index} className="col-span-1 border-2 border-[#C9750A] rounded-lg p-3 bg-white">
+                              <div className="flex items-start gap-3">
+                                {/* Correct Answer Checkbox */}
+                                <div className="flex items-center mt-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={option.isCorrect}
+                                    onChange={(e) => {
+                                      const updatedOptions = newQuestion.options.map((opt, i) => 
+                                        i === index ? {...opt, isCorrect: e.target.checked} : opt
+                                      );
+                                      setNewQuestion({...newQuestion, options: updatedOptions});
+                                    }}
+                                    className="w-4 h-4 text-[#C9750A] border-[#C9750A] rounded focus:ring-[#C9750A]"
+                                  />
+                                </div>
+                                
+                                {/* Option Content */}
+                                <div className="flex-1">
+                                  {option.imageUrl ? (
+                                    // Display uploaded image
+                                    <div className="w-full h-20 border-2 border-[#C9750A] rounded-lg overflow-hidden mb-2">
+                                      <img 
+                                        src={option.imageUrl} 
+                                        alt={`Option ${index + 1}`} 
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    // Text input for option
+                                    <input
+                                      type="text"
+                                      value={option.text}
+                                      onChange={(e) => {
+                                        const updatedOptions = newQuestion.options.map((opt, i: number) => 
+                                          i === index ? {...opt, text: e.target.value} : opt
+                                        );
+                                        setNewQuestion({...newQuestion, options: updatedOptions});
+                                      }}
+                                      className="w-full border-[#C9750A] border-2 rounded-md h-10 px-3 text-#C9750A mb-2"
+                                      placeholder={`Jawaban ${index + 1}`}
+                                    />
+                                  )}
+                                  
+                                  {/* Image Upload Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // TODO: Implement option image upload
+                                      console.log(`Upload image for option ${index + 1}`);
+                                    }}
+                                    className="text-xs text-[#C9750A] hover:text-[#5d4037] mb-2"
+                                  >
+                                    {option.imageUrl ? "Ganti Gambar" : "Upload Gambar"}
+                                  </button>
+                                </div>
+                                
+                                {/* Points Input */}
+                                <div className="flex flex-col items-end">
+                                  <label className="text-xs text-gray-600 mb-1">Points</label>
+                                  <input
+                                    type="number"
+                                    value={option.points}
+                                    onChange={(e) => {
+                                      const updatedOptions = newQuestion.options.map((opt, i: number) => 
+                                        i === index ? {...opt, points: parseInt(e.target.value) || 0} : opt
+                                      );
+                                      setNewQuestion({...newQuestion, options: updatedOptions});
+                                    }}
+                                    className="w-16 h-8 border-[#C9750A] border-2 rounded px-2 text-center text-#C9750A text-sm"
+                                    min="0"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Add Option Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newOption = {
+                              text: "",
+                              points: 0,
+                              isCorrect: false,
+                              order: newQuestion.options.length + 1,
+                              imageUrl: ""
+                            };
+                            setNewQuestion({
+                              ...newQuestion,
+                              options: [...newQuestion.options, newOption]
+                            });
+                          }}
+                          className="w-full mt-3 border-2 border-dashed border-[#C9750A] rounded-lg p-3 text-[#C9750A] hover:bg-[#C9750A] hover:text-white transition-colors"
+                        >
+                          + Tambah Jawaban
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   {/* Section 3 - Settings & Answer Cards */}
-                  <div className="col-span-5 space-y-3 p-4 md:p-6 max-h-screen overflow-y-auto pl-2 border-l border-[#C9750A]">
+                  <div className="col-span-3 space-y-3 p-4 md:p-6 max-h-screen overflow-y-auto pl-2 border-l border-[#C9750A]">
                     {/* Settings Section */}
                     <div className="border-2 border-[#C9750A] rounded-2xl p-2">
                       <div className="space-y-4">
                         <div>
                           <label className="block text-#C9750A font-bold mb-2">Tipe soal</label>
-                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
-                            <option>Benar atau Salah</option>
-                            <option>Pilihan Ganda</option>
-                            <option>Essay</option>
+                          <select 
+                            value={newQuestion.type}
+                            onChange={(e) => setNewQuestion({...newQuestion, type: e.target.value as "TRUE_FALSE" | "MULTIPLE_CHOICE" | "ESSAY" | "PUZZLE"})}
+                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]"
+                          >
+                            <option value="TRUE_FALSE">Benar atau Salah</option>
+                            <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
+                            <option value="ESSAY">Essay</option>
                           </select>
                         </div>
                         <div>
                           <label className="block text-[#5d4037] font-bold mb-2">Waktu</label>
-                          <select className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]">
-                            <option>10 Detik</option>
-                            <option>20 Detik</option>
-                            <option>30 Detik</option>
+                          <select 
+                            value={newQuestion.timeLimit}
+                            onChange={(e) => setNewQuestion({...newQuestion, timeLimit: parseInt(e.target.value)})}
+                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-[#C9750A]"
+                          >
+                            <option value={10}>10 Detik</option>
+                            <option value={20}>20 Detik</option>
+                            <option value={30}>30 Detik</option>
                           </select>
                         </div>
                         <div>
@@ -662,8 +893,11 @@ export default function EditQuizPage() {
                     <div className="flex justify-end gap-2">
                       <button 
                         className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
+                        onClick={() => {
+                          onsubmitSoal();
+                        }}
                       >
-                        Simpan Kuis
+                        Simpan Soal
                       </button>
                       <button 
                         className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer hover:bg-[#C9750A] border border-[#C9750A] text-[#C9750A] hover:text-white rounded-sm p-2 font-bold transition-colors"

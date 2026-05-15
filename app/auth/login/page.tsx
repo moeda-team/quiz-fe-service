@@ -74,13 +74,15 @@ function LoginPageInner() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Main Content */}
-      <Image
-        src="/images/welcome.svg"
-        alt="Login Card"
-        width={100}
-        height={100}
-        className="w-3/12 fixed right-0 bottom-0 z-50"
-      />
+      <div className="hidden md:block">
+        <Image
+          src="/images/welcome.svg"
+          alt="Login Card"
+          width={100}
+          height={100}
+          className="w-3/12 fixed right-0 bottom-0 z-50 max-w-[200px] lg:max-w-[250px]"
+        />
+      </div>
 
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
@@ -88,16 +90,18 @@ function LoginPageInner() {
           src="/images/bg-main.webp"
           alt="Background"
           fill
-          className="object-cover"
+          className="object-cover sm:object-center md:object-center lg:object-center"
           priority
+          sizes="100vw"
         />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/20 sm:to-amber-900/30 md:to-amber-900/40"></div>
       </div>
-      <div className="relative z-0 min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-4xl flex items-center justify-center gap-8">
+      <div className="relative z-0 min-h-screen flex items-center justify-center px-2 sm:px-4 md:px-6 lg:px-8 xl:px-12">
+        <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl flex items-center justify-center gap-4 sm:gap-6 md:gap-8">
           {/* Center - Login Card */}
           <div className="relative w-full">
             {/* Card Background */}
-            <div className="relative w-full max-w-[650px] mx-auto h-auto">
+            <div className="relative w-full max-w-[280px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-2xl mx-auto h-auto">
               <Image
                 src="/images/login/card-login.webp"
                 alt="Login Card"
@@ -107,24 +111,21 @@ function LoginPageInner() {
               />
 
               {/* Form Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
                 {/* Title */}
-                <div className="text-center mb-2 sm:mb-3">
-                  <h2 className="text-sm lg:text-xl sm:text-2xl font-bold text-amber-900 m-2" style={{ fontFamily: 'serif' }}>
+                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                  <h2 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-bold text-amber-900 mb-1 sm:mb-2 leading-tight" style={{ fontFamily: 'serif' }}>
                     Selamat Datang di Empat Rima
                   </h2>
-                  <div className="relative w-full h-16 sm:h-20 md:h-24">
+                  <div className="relative w-full h-14 sm:h-14 md:h-14 lg:h-16 xl:h-20 2xl:h-24">
                     <Image
-                      src="/images/login/quote.png"
+                      src="/images/login/quote.svg"
                       alt="Quote Banner"
                       fill
                       className="object-contain"
                     />
-                    <div className="absolute inset-0 translate-y-1 flex flex-col items-center justify-center text-amber-900 text-xs lg:text-sm sm:text-base" style={{ fontFamily: 'serif' }}>
-                      Belajar seru, kuis asyik, jadi pandai
-                    </div>
                   </div>
-                  <div className="relative w-full my-2 mt-4 sm:mt-6 md:mt-10 text-xs sm:text-sm">
+                  <div className="relative w-full my-1 mt-2 sm:mt-3 md:mt-4 lg:mt-6 xl:mt-8 text-xs sm:text-xs md:text-sm lg:text-base">
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-amber-900" style={{ fontFamily: 'serif' }}>
                       - Login untuk melanjutkan -
                     </div>
@@ -132,13 +133,13 @@ function LoginPageInner() {
                 </div>
 
                 {errorMsg && (
-                  <div className="bg-red-50/90 border border-[#C9750A] text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+                  <div className="bg-red-50/90 border border-[#C9750A] text-red-700 px-2 py-1 sm:px-3 sm:py-2 md:px-4 md:py-3 rounded-lg mb-3 sm:mb-4 text-xs sm:text-xs md:text-sm max-w-full break-words">
                     {errorMsg}
                   </div>
                 )}
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-[60%] mt-2">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-2 md:space-y-6 w-full px-10 lg:px-20">
                     <FormField
                       control={form.control}
                       name="email"
@@ -148,7 +149,7 @@ function LoginPageInner() {
                             <Input
                               {...field}
                               type="email"
-                              className="bg-transparent border border-[#C9750A] rounded-lg px-3 py-2"
+                              className="bg-transparent border border-[#C9750A] rounded-lg px-2 py-2 sm:px-3 sm:py-2 md:px-3 md:py-3 text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10 lg:h-11"
                               autoComplete="email"
                             />
                           </FormControl>
@@ -167,15 +168,15 @@ function LoginPageInner() {
                               <Input
                                 {...field}
                                 type={showPassword ? "text" : "password"}
-                                className="bg-transparent border border-amber-700 rounded-lg px-3 py-2 pr-10"
+                                className="bg-transparent border border-amber-700 rounded-lg px-2 py-2 sm:px-3 sm:py-2 md:px-3 md:py-3 pr-8 sm:pr-10 text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10 lg:h-11"
                                 autoComplete="current-password"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
                               >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                {showPassword ? <EyeOff size={14} className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye size={14} className="w-3 h-3 sm:w-4 sm:h-4" />}
                               </button>
                             </div>
                           </FormControl>
@@ -186,7 +187,7 @@ function LoginPageInner() {
 
                     <Button
                       type="submit"
-                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full sm:h-14 md:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold"
+                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 sm:h-11 md:h-12 lg:h-14 xl:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
                       disabled={isSubmitting}
                     >
                       <Image
