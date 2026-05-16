@@ -85,7 +85,7 @@ export default function EditQuizPage() {
       text: string;
       isCorrect: boolean;
       order: number;
-      points: number;
+      points: number | null;
       imageUrl?: string;
     }>;
     musicFile?: string;
@@ -97,8 +97,8 @@ export default function EditQuizPage() {
     imageUrl: "",
     musicFile: "",
     options: [
-      { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-      { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+      { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+      { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
     ]
   });
 
@@ -108,26 +108,26 @@ export default function EditQuizPage() {
       switch (type) {
         case "TRUE_FALSE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
         case "ESSAY":
           return [
-            { text: "", points: 100, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" }
           ];
         case "PUZZLE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" }
           ];
         case "MULTIPLE_CHOICE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
         default:
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
       }
     };
@@ -826,7 +826,7 @@ export default function EditQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A flex items-center justify-center text-white cursor-pointer transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -914,7 +914,7 @@ export default function EditQuizPage() {
                       {questions.map((question, index) => (
                         <div 
                           key={index} 
-                          className="bg-tranparent relative rounded-lg p-3 border border-[#C9750A] min-h-24 flex items-center w-full justify-center"
+                          className="bg-tranparent relative rounded-lg p-3 pr-6 border border-[#C9750A] min-h-24 max-h-24 flex items-center w-full justify-center"
                           style={question.imageUrl ? {
                             backgroundImage: `url(${question.imageUrl})`,
                             backgroundSize: 'cover',
@@ -923,7 +923,7 @@ export default function EditQuizPage() {
                           } : {}}
                         >
                           {!question.imageUrl && (
-                            <img src="/file.svg" alt="Question" width={25} height={25}/>
+                            <img src="/empty-question.svg" alt="Question" className="h-18"/>
                           )}
                           <button
                             onClick={(e) => handleEditQuestion(e, question.id)}
@@ -1066,19 +1066,19 @@ export default function EditQuizPage() {
                                   
                                   {/* Points Input */}
                                   <input
-                                    type="number"
-                                    value={option.points}
+                                    type="text"
+                                    value={option.points?.toString() || ''}
                                     onChange={(e) => {
                                       const inputValue = e.target.value;
                                       const updatedOptions = newQuestion.options.map((opt, i: number) => {
                                         if (i === index) {
-                                          // Jika input kosong, set ke 0
+                                          // Jika input kosong, set ke null
                                           if (inputValue === '') {
-                                            return {...opt, points: 0};
+                                            return {...opt, points: null};
                                           }
-                                          // Parse input, jika tidak valid gunakan 0
+                                          // Parse input, jika tidak valid gunakan null
                                           const parsedValue = parseInt(inputValue);
-                                          return {...opt, points: isNaN(parsedValue) ? 0 : parsedValue};
+                                          return {...opt, points: isNaN(parsedValue) ? null : parsedValue};
                                         }
                                         return opt;
                                       });
@@ -1094,7 +1094,7 @@ export default function EditQuizPage() {
                                     className="w-8 h-8 rounded-md bg-white flex items-center justify-center shadow-md cursor-pointer flex-shrink-0 hover:shadow-lg transition-shadow"
                                     onClick={() => {
                                       const updatedOptions = newQuestion.options.map((opt, i) => 
-                                        i === index ? {...opt, isCorrect: !opt.isCorrect} : opt
+                                        i === index ? {...opt, isCorrect: !opt.isCorrect, points: !opt.isCorrect ? opt.points :  0 } : opt
                                       );
                                       setNewQuestion({...newQuestion, options: updatedOptions});
                                     }}
@@ -1178,6 +1178,7 @@ export default function EditQuizPage() {
                             <option value="TRUE_FALSE">Benar atau Salah</option>
                             <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
                             <option value="ESSAY">Essay</option>
+                            {/* <option value="PUZZLE">Puzzle</option> */}
                           </select>
                         </div>
                         <div>
@@ -1210,12 +1211,12 @@ export default function EditQuizPage() {
                             />
                             <button 
                               onClick={() => buatSoalMusicFileInputRef.current?.click()}
-                              className="absolute border-l right-8 top-0 h-full w-8 bg-[#C9750A] rounded-r-lg flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                              className="absolute border-l right-8 top-0 h-full w-8 bg-[#C9750A] flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                             >
                               {isUploading ? (
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <Upload size={16} color="#5d4037" />
+                                <Upload size={16} color="#fff" />
                               )}
                             </button>
                             <button

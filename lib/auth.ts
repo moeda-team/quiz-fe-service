@@ -44,7 +44,7 @@ export const authOptions: NextAuthOptions = {
         const password = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || '';
 
         const basicAuth = `Basic ${btoa(`${username}:${password}`)}`;
-        console.log(credentials)
+
         try {
           const res = await fetch(`${API_BASE_URL}/users/login`, {
             method: "POST",
@@ -77,7 +77,6 @@ export const authOptions: NextAuthOptions = {
           }
 
           const data: { access_token?: string; accessToken?: string; token?: string; data?: { id: string; name: string; email: string; role: string; access_token?: string; token?: string } } = await res.json();
-          console.log("[AUTH] Login Response Data:", data);
 
           // Pastikan kita mengambil token dari tempat yang benar
           const access_token = data.access_token || data.accessToken || data.token || data.data?.access_token || data.data?.token;
@@ -111,7 +110,6 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user && isAppUser(user)) {
-        console.log("[AUTH] JWT Callback - User data:", user);
         token.name = user.name;
         token.email = user.email;
         token.role = user.role ?? "student";
@@ -120,7 +118,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      console.log("[AUTH] Session Callback - Token data:", token);
+      
       if (session.user) {
         session.user.name = token.name ?? session.user.name;
         session.user.email =
@@ -128,6 +126,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role ?? "student";
       }
       session.access_token = token.access_token;
+      
       return session;
     },
   },

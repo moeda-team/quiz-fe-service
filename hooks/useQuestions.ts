@@ -15,7 +15,7 @@ export interface Question {
   answers?: Array<{
     text: string;
     isCorrect: boolean;
-    points: number;
+    points: number | null;
   }>;
 }
 

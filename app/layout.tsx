@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Empat Rima",
@@ -12,15 +14,17 @@ export const metadata: Metadata = {
 
 import { Toaster } from "@/components/ui/sonner";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-slate-950 text-slate-50">
-        <SessionProvider>
+        <SessionProvider session={session}>
           <MusicPlayerProvider>
             {children}
             <Toaster />
