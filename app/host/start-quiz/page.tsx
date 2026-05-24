@@ -2,19 +2,18 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Loader2, Trash2 } from "lucide-react";
 import { useQuizzes } from "@/hooks/useQuizzes";
-import { toast } from "sonner";
-import Swal from 'sweetalert2';
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardAdminPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
-  const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, deleteQuiz } = useQuizzes(debouncedSearch);
+  const { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore } = useQuizzes(debouncedSearch);
 
   // Intersection Observer for infinite scroll
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -44,28 +43,6 @@ export default function DashboardAdminPage() {
     };
   }, [handleObserver]);
 
-  const handleDeleteQuiz = async (id: string | number) => {
-    const result = await Swal.fire({
-      title: 'Hapus Kuis?',
-      text: 'Kuis yang dihapus tidak dapat dikembalikan lagi!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Ya, Hapus!',
-      cancelButtonText: 'Batal'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await deleteQuiz(id);
-        toast.success("Kuis berhasil dihapus");
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        toast.error("Gagal menghapus kuis: " + errorMessage);
-      }
-    }
-  };
 
   // Debounce search
   useEffect(() => {
@@ -96,7 +73,7 @@ export default function DashboardAdminPage() {
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}
         <header className="mb-4 md:mb-6 shrink-0">
-          <div className="text-center">
+          <div className="text-center cursor-pointer" onClick={() => router.push('/')}>
             <div
               className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
               style={{ fontFamily: 'Varela Round' }}
@@ -136,11 +113,6 @@ export default function DashboardAdminPage() {
 
         {/* Content Section */}
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-4 md:gap-6 flex-1 min-h-0">
-          {/* People Illustration (Desktop only) */}
-          <div className="hidden md:flex justify-start h-16 lg:h-28 -mb-10 ml-4 shrink-0">
-            <img src="/images/people.svg" alt="people" className="h-full object-contain" />
-          </div>
-
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0">
             {/* Main Card List */}
             <div
@@ -157,7 +129,7 @@ export default function DashboardAdminPage() {
                 <div className="flex items-center gap-2 md:gap-4">
                   <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
                   <div className="text-xl md:text-1xl text-amber-950 tracking-tight">
-                    SEMUA KUIS
+                    PILIH KUIS UNTUK MULAI
                   </div>
                   <img src="/images/icon-title-r.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
                 </div>
@@ -205,27 +177,6 @@ export default function DashboardAdminPage() {
                             )}
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                            {/* Action Buttons Overlay */}
-                            <div className="absolute top-2 right-2 flex gap-2 z-20 lg:group-hover:opacity-100 transition-opacity">
-                              <Link
-                                href={`/host/quiziz/edit/${quiz.id}`}
-                                className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-amber-700 shadow-md hover:bg-amber-700 hover:text-white transition-all"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </Link>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteQuiz(quiz.id);
-                                }}
-                                className="w-8 h-8 cursor-pointer bg-white/90 rounded-full flex items-center justify-center text-red-600 shadow-md hover:bg-red-600 hover:text-white transition-all"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
                           </div>
                           <div className="p-4 flex flex-col flex-1 bg-amber-50/30">
                             <h3 className="font-bold text-black mb-2 text-sm md:text-base line-clamp-2 leading-snug">
@@ -264,22 +215,6 @@ export default function DashboardAdminPage() {
                   </>
                 )}
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-row lg:flex-col gap-3 md:gap-4 justify-center items-center shrink-0 py-2">
-              <Link href="/host/quiziz/create" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
-                <img src="/images/create.svg" alt="Create" className="w-full h-auto drop-shadow-lg" />
-              </Link>
-              <Link href="/host/start-quiz" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
-                <img src="/images/start.svg" alt="Start" className="w-full h-auto drop-shadow-lg" />
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="lg:w-full transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <img src="/images/exit.svg" alt="Exit" className="w-full h-auto drop-shadow-lg" />
-              </button>
             </div>
           </div>
         </div>
