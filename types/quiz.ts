@@ -60,3 +60,56 @@ export interface QuizResponse {
 
 // For dynamic API responses that may have varying structures
 export type QuizDynamicResponse = DynamicObject & QuizApiResponse;
+
+// Question Payload Types
+export interface QuestionOption {
+  text: string;
+  points: number;
+  isCorrect: boolean;
+  order: number;
+  imageUrl?: string;
+}
+
+export interface EssayAnswer {
+  expectedAnswer: string;
+}
+
+export interface PuzzleItem {
+  text: string;
+  correctOrder: number;
+  points?: number;
+}
+
+export interface BaseQuestionPayload {
+  quizId: string;
+  order: number;
+  text: string;
+  type: "TRUE_FALSE" | "MULTIPLE_CHOICE" | "ESSAY" | "PUZZLE";
+  timeLimit: number;
+  voiceUrl: string;
+  imageUrl: string;
+  musicFile: string;
+}
+
+export interface TrueFalsePayload extends BaseQuestionPayload {
+  type: "TRUE_FALSE";
+  options: QuestionOption[];
+}
+
+export interface MultipleChoicePayload extends BaseQuestionPayload {
+  type: "MULTIPLE_CHOICE";
+  options: QuestionOption[];
+}
+
+export interface EssayPayload extends BaseQuestionPayload {
+  type: "ESSAY";
+  essayAnswer: EssayAnswer;
+  options: QuestionOption[];
+}
+
+export interface PuzzlePayload extends BaseQuestionPayload {
+  type: "PUZZLE";
+  puzzleItems: PuzzleItem[];
+}
+
+export type QuestionPayload = TrueFalsePayload | MultipleChoicePayload | EssayPayload | PuzzlePayload;

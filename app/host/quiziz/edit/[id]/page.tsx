@@ -43,6 +43,17 @@ import { Plus } from "lucide-react";
 import { Question, useQuestions } from "@/hooks/useQuestions";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
+import {
+  QuestionOption,
+  EssayAnswer,
+  PuzzleItem,
+  BaseQuestionPayload,
+  TrueFalsePayload,
+  MultipleChoicePayload,
+  EssayPayload,
+  PuzzlePayload,
+  QuestionPayload
+} from "@/types/quiz";
 
 interface ApiResponse<T> {
   data?: T;
@@ -50,6 +61,108 @@ interface ApiResponse<T> {
   status?: number;
   success?: boolean;
 }
+
+// Validation function for question payload based on type
+const validateQuestionPayload = (payload: QuestionPayload, type: string): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Common validations
+  if (!payload.quizId) errors.push("Quiz ID harus ada");
+  if (!payload.text?.trim()) errors.push("Pertanyaan tidak boleh kosong");
+  if (!payload.type) errors.push("Tipe soal harus ada");
+  if (!payload.timeLimit || payload.timeLimit <= 0) errors.push("Waktu harus lebih dari 0 detik");
+
+  // Type-specific validations
+  switch (type) {
+    case "TRUE_FALSE": {
+      const tfPayload = payload as TrueFalsePayload;
+      if (!Array.isArray(tfPayload.options) || tfPayload.options.length !== 2) {
+        errors.push("Soal TRUE_FALSE harus memiliki tepat 2 pilihan");
+      } else {
+        const hasCorrect = tfPayload.options.some((opt: QuestionOption) => opt.isCorrect === true);
+        if (!hasCorrect) errors.push("Harus ada satu jawaban yang benar");
+        tfPayload.options.forEach((opt: QuestionOption, idx: number) => {
+          if (!opt.text?.trim() && !opt.imageUrl?.trim()) {
+            errors.push(`Opsi ${idx + 1} harus memiliki teks atau gambar`);
+          }
+          if (typeof opt.points !== "number" || opt.points < 0) {
+            errors.push(`Opsi ${idx + 1} harus memiliki poin yang valid`);
+          }
+          if (typeof opt.isCorrect !== "boolean") {
+            errors.push(`Opsi ${idx + 1} harus menentukan status benar/salah`);
+          }
+          if (typeof opt.order !== "number" || opt.order < 1) {
+            errors.push(`Opsi ${idx + 1} harus memiliki urutan yang valid`);
+          }
+        });
+      }
+      break;
+    }
+
+    case "MULTIPLE_CHOICE": {
+      const mcPayload = payload as MultipleChoicePayload;
+      if (!Array.isArray(mcPayload.options) || mcPayload.options.length < 2) {
+        errors.push("Soal MULTIPLE_CHOICE harus memiliki minimal 2 pilihan");
+      } else {
+        const hasCorrect = mcPayload.options.some((opt: QuestionOption) => opt.isCorrect === true);
+        if (!hasCorrect) errors.push("Harus ada satu jawaban yang benar");
+        
+        mcPayload.options.forEach((opt: QuestionOption, idx: number) => {
+          if (!opt.text?.trim() && !opt.imageUrl?.trim()) {
+            errors.push(`Opsi ${idx + 1} harus memiliki teks atau gambar`);
+          }
+          if (typeof opt.points !== "number" || opt.points < 0) {
+            errors.push(`Opsi ${idx + 1} harus memiliki poin yang valid`);
+          }
+          if (typeof opt.isCorrect !== "boolean") {
+            errors.push(`Opsi ${idx + 1} harus menentukan status benar/salah`);
+          }
+          if (typeof opt.order !== "number" || opt.order < 1) {
+            errors.push(`Opsi ${idx + 1} harus memiliki urutan yang valid`);
+          }
+        });
+      }
+      break;
+    }
+
+    case "ESSAY": {
+      const essayPayload = payload as EssayPayload;
+      // if (!essayPayload.essayAnswer) {
+      //   errors.push("Soal ESSAY harus memiliki expectedAnswer");
+      // } else {
+      //   if (!essayPayload.essayAnswer.expectedAnswer?.trim()) {
+      //     errors.push("Jawaban yang diharapkan tidak boleh kosong");
+      //   }
+      // }
+      break;
+    }
+
+    case "PUZZLE": {
+      const puzzlePayload = payload as PuzzlePayload;
+      if (!Array.isArray(puzzlePayload.puzzleItems) || puzzlePayload.puzzleItems.length < 2) {
+        errors.push("Soal PUZZLE harus memiliki minimal 2 item");
+      } else {
+        puzzlePayload.puzzleItems.forEach((item: PuzzleItem, idx: number) => {
+          if (!item.text?.trim()) {
+            errors.push(`Item puzzle ${idx + 1} tidak boleh kosong`);
+          }
+          if (typeof item.correctOrder !== "number" || item.correctOrder < 1) {
+            errors.push(`Item puzzle ${idx + 1} harus memiliki urutan yang valid`);
+          }
+        });
+      }
+      break;
+    }
+
+    default:
+      errors.push(`Tipe soal "${type}" tidak valid`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+};
 
 
 export default function EditQuizPage() {
@@ -85,7 +198,7 @@ export default function EditQuizPage() {
       text: string;
       isCorrect: boolean;
       order: number;
-      points: number;
+      points: number | null;
       imageUrl?: string;
     }>;
     musicFile?: string;
@@ -97,8 +210,8 @@ export default function EditQuizPage() {
     imageUrl: "",
     musicFile: "",
     options: [
-      { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-      { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+      { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+      { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
     ]
   });
 
@@ -108,26 +221,26 @@ export default function EditQuizPage() {
       switch (type) {
         case "TRUE_FALSE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
         case "ESSAY":
           return [
-            { text: "", points: 100, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" }
           ];
         case "PUZZLE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" }
           ];
         case "MULTIPLE_CHOICE":
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
         default:
           return [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-            { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: null, isCorrect: false, order: 2, imageUrl: "" }
           ];
       }
     };
@@ -511,31 +624,108 @@ export default function EditQuizPage() {
         return;
       }
 
-      // Validate option texts
-      const hasEmptyOption = newQuestion.options.some(option => !option.text.trim() && !option.imageUrl);
-      if (hasEmptyOption) {
-        toast.error("Semua jawaban harus memiliki teks atau gambar!");
-        return;
+      // Validate option texts (skip for ESSAY type)
+      if (newQuestion.type !== "ESSAY") {
+        const hasEmptyOption = newQuestion.options.some(option => !option.text.trim() && !option.imageUrl);
+        if (hasEmptyOption) {
+          toast.error("Semua jawaban harus memiliki teks atau gambar!");
+          return;
+        }
       }
 
-      // Create question payload
-      const questionPayload = {
+      // Build type-specific payload
+      let questionPayload: QuestionPayload;
+      const basePayload: BaseQuestionPayload = {
         quizId: params.id as string,
         order: questions.length + 1,
         text: newQuestion.text,
         type: newQuestion.type,
         timeLimit: newQuestion.timeLimit,
         voiceUrl: "/media/default.mp3",
-        imageUrl: newQuestion.imageUrl,
+        imageUrl: newQuestion.imageUrl || "",
         musicFile: newQuestion.musicFile || "/media/default.mp3",
-        options: newQuestion.options.map((option, index) => ({
-          text: option.text,
-          points: option.points,
-          isCorrect: option.isCorrect,
-          order: index + 1,
-          imageUrl: option.imageUrl || ""
-        }))
       };
+
+      // Add type-specific fields
+      switch (newQuestion.type) {
+        case "TRUE_FALSE": {
+          const options: QuestionOption[] = newQuestion.options.map((option, index) => ({
+            text: option.text,
+            points: option.points ?? 0,
+            isCorrect: option.isCorrect,
+            order: index + 1,
+            imageUrl: option.imageUrl || ""
+          }));
+          questionPayload = {
+            ...basePayload,
+            type: "TRUE_FALSE",
+            options
+          } as TrueFalsePayload;
+          break;
+        }
+
+        case "MULTIPLE_CHOICE": {
+          const options: QuestionOption[] = newQuestion.options.map((option, index) => ({
+            text: option.text,
+            points: option.points ?? 0,
+            isCorrect: option.isCorrect,
+            order: index + 1,
+            imageUrl: option.imageUrl || ""
+          }));
+          questionPayload = {
+            ...basePayload,
+            type: "MULTIPLE_CHOICE",
+            options
+          } as MultipleChoicePayload;
+          break;
+        }
+
+        case "ESSAY": {
+          const essayCorrectOption = newQuestion.options.find(opt => opt.isCorrect);
+          const essayAnswer: EssayAnswer = {
+            expectedAnswer: essayCorrectOption?.text || ""
+          };
+          const options: QuestionOption[] = newQuestion.options.map((option, index) => ({
+            text: option.text,
+            points: option.points ?? 0,
+            isCorrect: option.isCorrect,
+            order: index + 1
+          }));
+          questionPayload = {
+            ...basePayload,
+            type: "ESSAY",
+            essayAnswer,
+            options
+          } as EssayPayload;
+          break;
+        }
+
+        case "PUZZLE": {
+          const puzzleItems: PuzzleItem[] = newQuestion.options.map((option, index) => ({
+            text: option.text,
+            correctOrder: option.isCorrect ? index + 1 : index + 1,
+            points: option.points ?? 10
+          }));
+          questionPayload = {
+            ...basePayload,
+            type: "PUZZLE",
+            puzzleItems
+          } as PuzzlePayload;
+          break;
+        }
+
+        default:
+          toast.error("Tipe soal tidak valid");
+          return;
+      }
+
+      // Validate the payload based on type
+      const validation = validateQuestionPayload(questionPayload, newQuestion.type);
+      if (!validation.valid) {
+        const errorMessage = validation.errors.join("\n");
+        toast.error(`Validasi gagal:\n${errorMessage}`);
+        return;
+      }
       
       if (editingQuestionId) {
         // Update existing question
@@ -550,7 +740,7 @@ export default function EditQuizPage() {
             answers: newQuestion.options.map(option => ({
               text: option.text,
               isCorrect: option.isCorrect,
-              points: option.points
+              points: option.points ?? 0
             })),
             correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
             order: questions.find(q => q.id === editingQuestionId)?.order || questions.length + 1,
@@ -580,7 +770,7 @@ export default function EditQuizPage() {
             answers: newQuestion.options.map(option => ({
               text: option.text,
               isCorrect: option.isCorrect,
-              points: option.points
+              points: option.points ?? 0
             })),
             correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
             order: questions.length + 1,
@@ -826,7 +1016,7 @@ export default function EditQuizPage() {
                                 />
                                 <div
                                   onClick={() => musicFileInputRef.current?.click()}
-                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A rounded-r-xl flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                                  className="absolute border-l right-12 top-0 h-full w-12 bg-#C9750A flex items-center justify-center text-white cursor-pointer transition-colors"
                                 >
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -914,7 +1104,7 @@ export default function EditQuizPage() {
                       {questions.map((question, index) => (
                         <div 
                           key={index} 
-                          className="bg-tranparent relative rounded-lg p-3 border border-[#C9750A] min-h-24 flex items-center w-full justify-center"
+                          className="bg-tranparent relative rounded-lg p-3 pr-6 border border-[#C9750A] min-h-24 max-h-24 flex items-center w-full justify-center"
                           style={question.imageUrl ? {
                             backgroundImage: `url(${question.imageUrl})`,
                             backgroundSize: 'cover',
@@ -923,7 +1113,7 @@ export default function EditQuizPage() {
                           } : {}}
                         >
                           {!question.imageUrl && (
-                            <img src="/file.svg" alt="Question" width={25} height={25}/>
+                            <img src="/empty-question.svg" alt="Question" className="h-18"/>
                           )}
                           <button
                             onClick={(e) => handleEditQuestion(e, question.id)}
@@ -1066,19 +1256,19 @@ export default function EditQuizPage() {
                                   
                                   {/* Points Input */}
                                   <input
-                                    type="number"
-                                    value={option.points}
+                                    type="text"
+                                    value={option.points?.toString() || ''}
                                     onChange={(e) => {
                                       const inputValue = e.target.value;
                                       const updatedOptions = newQuestion.options.map((opt, i: number) => {
                                         if (i === index) {
-                                          // Jika input kosong, set ke 0
+                                          // Jika input kosong, set ke null
                                           if (inputValue === '') {
-                                            return {...opt, points: 0};
+                                            return {...opt, points: null};
                                           }
-                                          // Parse input, jika tidak valid gunakan 0
+                                          // Parse input, jika tidak valid gunakan null
                                           const parsedValue = parseInt(inputValue);
-                                          return {...opt, points: isNaN(parsedValue) ? 0 : parsedValue};
+                                          return {...opt, points: isNaN(parsedValue) ? null : parsedValue};
                                         }
                                         return opt;
                                       });
@@ -1094,7 +1284,7 @@ export default function EditQuizPage() {
                                     className="w-8 h-8 rounded-md bg-white flex items-center justify-center shadow-md cursor-pointer flex-shrink-0 hover:shadow-lg transition-shadow"
                                     onClick={() => {
                                       const updatedOptions = newQuestion.options.map((opt, i) => 
-                                        i === index ? {...opt, isCorrect: !opt.isCorrect} : opt
+                                        i === index ? {...opt, isCorrect: !opt.isCorrect, points: !opt.isCorrect ? opt.points :  0 } : opt
                                       );
                                       setNewQuestion({...newQuestion, options: updatedOptions});
                                     }}
@@ -1178,6 +1368,7 @@ export default function EditQuizPage() {
                             <option value="TRUE_FALSE">Benar atau Salah</option>
                             <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
                             <option value="ESSAY">Essay</option>
+                            {/* <option value="PUZZLE">Puzzle</option> */}
                           </select>
                         </div>
                         <div>
@@ -1210,12 +1401,12 @@ export default function EditQuizPage() {
                             />
                             <button 
                               onClick={() => buatSoalMusicFileInputRef.current?.click()}
-                              className="absolute border-l right-8 top-0 h-full w-8 bg-[#C9750A] rounded-r-lg flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
+                              className="absolute border-l right-8 top-0 h-full w-8 bg-[#C9750A] flex items-center justify-center text-white cursor-pointer hover:bg-[#795548] transition-colors"
                             >
                               {isUploading ? (
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <Upload size={16} color="#5d4037" />
+                                <Upload size={16} color="#fff" />
                               )}
                             </button>
                             <button

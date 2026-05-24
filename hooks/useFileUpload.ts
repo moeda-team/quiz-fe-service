@@ -11,6 +11,7 @@ interface UploadResponse {
   data: {
     url: string;
     fileUrl: string;
+    fileName: string;
     id: string;
     [key: string]: unknown;
   };
