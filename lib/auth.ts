@@ -57,7 +57,6 @@ export const authOptions: NextAuthOptions = {
               password: credentials.password,
             }),
           });
-
           if (!res.ok) {
             const text = await res.text().catch(() => "");
             console.error(
@@ -110,6 +109,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user && isAppUser(user)) {
+        token.id = user.id;
         token.name = user.name;
         token.email = user.email;
         token.role = user.role ?? "student";
@@ -118,8 +118,8 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      
       if (session.user) {
+        session.user.id = token.id as string;
         session.user.name = token.name ?? session.user.name;
         session.user.email =
           (token.email as string | undefined) ?? session.user.email;

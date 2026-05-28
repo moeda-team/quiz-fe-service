@@ -232,10 +232,6 @@ export default function DashboardAdminPage() {
                               {quiz.title}
                             </h3>
                             <div className="mt-auto">
-                              <p className="text-xs font-semibold text-black flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-black" />
-                                {typeof quiz.questions === 'number' ? quiz.questions : (Array.isArray(quiz.questions) ? quiz.questions.length : 0)} Pertanyaan
-                              </p>
                               <p className="text-[10px] md:text-xs text-black/80 mt-1">
                                 By {quiz.author || "Anonim"}
                               </p>
@@ -275,7 +271,7 @@ export default function DashboardAdminPage() {
               <Link href="/host/quiziz/create" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
                 <img src="/images/create.svg" alt="Create" className="w-full h-auto drop-shadow-lg" />
               </Link>
-              <Link href="#" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
+              <Link href="/host/start-quiz" className="lg:w-full transition-transform hover:scale-105 active:scale-95">
                 <img src="/images/start.svg" alt="Start" className="w-full h-auto drop-shadow-lg" />
               </Link>
               <button
