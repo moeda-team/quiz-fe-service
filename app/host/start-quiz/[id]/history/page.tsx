@@ -120,12 +120,10 @@ export default function HistoryPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 <div className=" rounded-2xl flex flex-col gap-4 col-span-2 min-h-[calc(100vh-140px)]">
                   <div className="w-full h-56 rounded-lg relative">
-                    <Image
+                    <img
                       src={quizdata?.coverImage || "/images/bg-main.webp"}
                       alt="Quiz 1"
-                      fill
                       className="object-cover rounded-lg"
-                      priority
                     />
                     <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
                     <div className="absolute bottom-0 left-0 right-0 text-white bg-black/50 rounded-b-lg p-2">
@@ -134,7 +132,7 @@ export default function HistoryPage() {
                       <button 
                         className="absolute bottom-2 right-2 hover:scale-105 transition-transform hover:bg-transparent w-28 h-10 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
                         onClick={() => {
-                          router.push(`/host/start-quiz/${quizdata?.id}`)
+                          router.replace(`/host/start-quiz/${quizdata?.id}`)
                         }}
                       >
                         <Image
@@ -154,6 +152,7 @@ export default function HistoryPage() {
                           <TableHead className="text-white px-2 text-center w-12">No.</TableHead>
                           <TableHead className="text-white px-2 text-center">Tanggal Kuis</TableHead>
                           <TableHead className="text-white px-2 text-center">Peserta</TableHead>
+                          <TableHead className="text-white px-2 text-center">Join Code</TableHead>
                           <TableHead className="text-white px-2 text-center">Status</TableHead>
                           <TableHead className="text-white px-2 text-center w-24">#</TableHead>
                         </TableRow>
@@ -161,7 +160,7 @@ export default function HistoryPage() {
                       <TableBody>
                         {history.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4">
+                            <TableCell colSpan={6} className="text-center py-4">
                               Tidak ada riwayat kuis
                             </TableCell>
                           </TableRow>
@@ -171,6 +170,7 @@ export default function HistoryPage() {
                             <TableCell className="px-2 text-center">{index + 1}</TableCell>
                             <TableCell className="px-2 text-center">{formatDate(item.startedAt, 'dd MMM yyyy HH:mm')}</TableCell>
                             <TableCell className="px-2 text-center">{item.participantCount}</TableCell>
+                            <TableCell className="px-2 text-center">{item.joinCode}</TableCell>
                             <TableCell className="px-2 text-center">{item.status}</TableCell>
                             <TableCell className="px-2 text-center">
                               <button
@@ -195,12 +195,18 @@ export default function HistoryPage() {
                     Overview {historyDetail && historyDetail?.session?.startedAt && formatDate(historyDetail?.session?.startedAt, 'dd MMM yyyy')}
                   </div>
                   <div className="flex flex-col gap-2">
-                    {historyDetail && historyDetail?.leaderboard.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between bg-[#3D2B20] rounded-sm p-2">
-                        <p>#{item.rank} {item.name}</p>
-                        <p>{item.score}pts</p>
+                    {historyDetail ? (
+                      historyDetail?.leaderboard.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between bg-[#3D2B20] rounded-sm p-2">
+                          <p>#{item.rank} {item.name}</p>
+                          <p>{item.score}pts</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-400">
+                        No data available
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>

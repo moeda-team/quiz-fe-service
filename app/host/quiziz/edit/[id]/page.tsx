@@ -550,13 +550,21 @@ export default function EditQuizPage() {
       
       // Map question data to newQuestion state
       let mappedOptions;
-      if (questionToEdit.answers && questionToEdit.answers.length > 0) {
+      if (questionToEdit.options && questionToEdit.options.length > 0) {
+        mappedOptions = questionToEdit.options.map((option, index) => ({
+          text: option.text,
+          points: option.points,
+          isCorrect: option.isCorrect,
+          order: option.order || index + 1,
+          imageUrl: option.imageUrl || ""
+        }));
+      } else if (questionToEdit.answers && questionToEdit.answers.length > 0) {
         mappedOptions = questionToEdit.answers.map((answer, index) => ({
           text: answer.text,
-          points: answer.points,
+          points: answer.points || 0,
           isCorrect: answer.isCorrect,
           order: index + 1,
-          imageUrl: "" // TODO: Get imageUrl from API if available
+          imageUrl: ""
         }));
       } else {
         // Use default options based on question type
@@ -604,6 +612,24 @@ export default function EditQuizPage() {
     } else {
       toast.error("Soal tidak ditemukan!");
     }
+  };
+
+  const handleResetForm = () => {
+    setNewQuestion({
+      text: "",
+      type: "TRUE_FALSE",
+      timeLimit: 30,
+      imageUrl: "",
+      musicFile: "",
+      options: [
+        { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+        { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
+      ]
+    });
+    setQuestionImageUrl("");
+    setOptionImages({});
+    setOptionImageUploading({});
+    setEditingQuestionId(null);
   };
 
   const onsubmitSoal = async () => {
@@ -787,23 +813,8 @@ export default function EditQuizPage() {
           return;
         }
       }
-      
-      // Reset form
-      setNewQuestion({
-        text: "",
-        type: "TRUE_FALSE",
-        timeLimit: 30,
-        imageUrl: "",
-        musicFile: "",
-        options: [
-          { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
-          { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
-        ]
-      });
-      setQuestionImageUrl("");
-      setOptionImages({});
-      setOptionImageUploading({});
-      setEditingQuestionId(null);
+
+      handleResetForm();
     } catch (error) {
       console.error("Error creating question:", error);
       toast.error("Gagal membuat soal. Silakan coba lagi.");
@@ -1381,6 +1392,12 @@ export default function EditQuizPage() {
                             <option value={10}>10 Detik</option>
                             <option value={20}>20 Detik</option>
                             <option value={30}>30 Detik</option>
+                            <option value={40}>40 Detik</option>
+                            <option value={50}>50 Detik</option>
+                            <option value={60}>60 Detik</option>
+                            <option value={100}>100 Detik</option>
+                            <option value={120}>120 Detik</option>
+                            <option value={180}>180 Detik</option>
                           </select>
                         </div>
                         <div>
@@ -1444,8 +1461,7 @@ export default function EditQuizPage() {
                         className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer hover:bg-[#C9750A] border border-[#C9750A] text-[#C9750A] hover:text-white rounded-sm p-2 font-bold transition-colors"
                         type="button"
                         onClick={() => {
-                          pauseMusic();
-                          setCurrentMode('edit');
+                          handleResetForm();
                         }}
                       >
                         Batal

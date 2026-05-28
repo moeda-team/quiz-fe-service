@@ -14,6 +14,10 @@ interface SocketContextType {
   emit: (event: string, data?: unknown) => void;
   on: (event: string, callback: (...args: unknown[]) => void) => void;
   off: (event: string, callback?: (...args: unknown[]) => void) => void;
+  // Socket ID locking methods
+  lockSocketId: (socketId: string) => void;
+  getLockedSocketId: () => string | null;
+  clearLockedSocketId: () => void;
   // Quiz specific methods
   startQuiz: (quizId: string, hostId: string) => void;
   joinQuiz: (quizId: string, userId: string, userName: string) => void;
@@ -81,6 +85,19 @@ export function SocketProvider({ children, userId }: SocketProviderProps) {
     socketService.off(event, callback);
   }, []);
 
+  // Socket ID locking methods
+  const lockSocketId = useCallback((socketId: string) => {
+    socketService.lockSocketId(socketId);
+  }, []);
+
+  const getLockedSocketId = useCallback(() => {
+    return socketService.getLockedSocketId();
+  }, []);
+
+  const clearLockedSocketId = useCallback(() => {
+    socketService.clearLockedSocketId();
+  }, []);
+
   // Quiz specific methods
   const startQuiz = useCallback((quizId: string, hostId: string) => {
     socketService.startQuiz(quizId, hostId);
@@ -137,6 +154,9 @@ export function SocketProvider({ children, userId }: SocketProviderProps) {
     emit,
     on,
     off,
+    lockSocketId,
+    getLockedSocketId,
+    clearLockedSocketId,
     startQuiz,
     joinQuiz,
     leaveQuiz,

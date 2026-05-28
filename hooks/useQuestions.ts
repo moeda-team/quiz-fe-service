@@ -3,6 +3,22 @@
 import { useState, useCallback } from "react";
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "@/lib/api";
 
+export interface Option {
+  id?: string;
+  questionId?: string;
+  text: string;
+  imageUrl?: string;
+  points: number;
+  isCorrect: boolean;
+  order: number;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -10,6 +26,7 @@ export interface Question {
   order: number;
   timeLimit?: number;
   imageUrl?: string;
+  options?: Option[];
   musicFile?: string;
   correctAnswer?: string;
   answers?: Array<{

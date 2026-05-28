@@ -149,6 +149,7 @@ export interface QuizHistory {
   id: string;
   startedAt: string;
   participantCount: number;
+  joinCode: string;
   status: string;
 }
 
