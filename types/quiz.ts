@@ -6,6 +6,7 @@ export interface Quiz extends BaseEntity {
   author?: string;
   coverImage?: string;
   description?: string;
+  instructions?: string;
   isPublished?: boolean;
   totalQuestions?: number;
 }
@@ -113,3 +114,57 @@ export interface PuzzlePayload extends BaseQuestionPayload {
 }
 
 export type QuestionPayload = TrueFalsePayload | MultipleChoicePayload | EssayPayload | PuzzlePayload;
+
+// Music-related types
+export interface MusicData {
+  id?: string;
+  title: string;
+  artist?: string;
+  fileUrl: string;
+  duration?: number;
+  isPlaying?: boolean;
+}
+
+export interface QuizWithMusic extends Quiz {
+  backgroundMusic?: MusicData;
+  questions: (QuizQuestion & {
+    musicFile?: string;
+  })[];
+}
+
+// LocalStorage detail type
+export interface QuizDetailFromStorage {
+  id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  backgroundMusic?: MusicData;
+  questions: QuizQuestion[];
+  totalQuestions?: number;
+  author?: string;
+}
+
+
+export interface QuizHistory {
+  id: string;
+  startedAt: string;
+  participantCount: number;
+  status: string;
+}
+
+export interface QuizHistoryDetail {
+  leaderboard: {
+    rank: number;
+    participantId: string;
+    name: string;
+    score: number;
+    savedAt: string;
+  }[];
+  session: {
+    id: string;
+    quizId: string;
+    quizTitle: string;
+    startedAt: string;
+    endedAt: string;
+  };
+}

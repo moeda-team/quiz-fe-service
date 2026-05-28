@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
 import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
-import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData, QuizResponse } from "@/types/quiz";
+import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData, QuizResponse, QuizHistory, QuizHistoryDetail } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
@@ -177,5 +177,35 @@ export function useQuizzes(searchQuery: string = "") {
     }
   }, []);
 
-  return { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById };
+  const getHistory = useCallback(async (quizId: string): Promise<QuizHistory[]> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiGet<{ data: QuizHistory[] }>(`/quiz-sessions?quizId=${quizId}`);
+      return response.data;
+    } catch (err: ErrorType) {
+      console.error("Failed to fetch quiz history:", err);
+      setError(getErrorMessage(err));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getHistoryDetail = useCallback(async (sessionId: string): Promise<QuizHistoryDetail> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiGet<{ data: QuizHistoryDetail }>(`/quiz-sessions/${sessionId}/leaderboard`);
+      return response.data;
+    } catch (err: ErrorType) {
+      console.error("Failed to fetch quiz history detail:", err);
+      setError(getErrorMessage(err));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById, getHistory, getHistoryDetail };
 }

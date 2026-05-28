@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -25,10 +26,12 @@ export default async function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-slate-950 text-slate-50">
         <SessionProvider session={session}>
-          <MusicPlayerProvider>
-            {children}
-            <Toaster />
-          </MusicPlayerProvider>
+          <SocketProvider userId={session?.user?.id}>
+            <MusicPlayerProvider>
+              {children}
+              <Toaster />
+            </MusicPlayerProvider>
+          </SocketProvider>
         </SessionProvider>
       </body>
     </html>

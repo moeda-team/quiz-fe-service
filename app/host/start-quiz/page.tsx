@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { signOut } from "next-auth/react";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useRouter } from "next/navigation";
@@ -51,10 +50,6 @@ export default function DashboardAdminPage() {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: "/auth/login" });
-  };
 
   return (
     <div className="h-screen relative overflow-hidden flex flex-col">
@@ -168,6 +163,10 @@ export default function DashboardAdminPage() {
                         <div
                           key={`${quiz.id}-${index}`}
                           className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
+                          onClick={() => {
+                            router.push(`/host/start-quiz/${quiz.id}/history`)
+                            localStorage.setItem('detail', JSON.stringify(quiz))
+                          }}
                         >
                           <div className="aspect-video bg-linear-to-br from-amber-100 to-amber-300 flex items-center justify-center relative overflow-hidden">
                             {quiz.coverImage ? (
