@@ -123,7 +123,7 @@ export default function HistoryPage() {
                     <img
                       src={quizdata?.coverImage || "/images/bg-main.webp"}
                       alt="Quiz 1"
-                      className="object-cover rounded-lg"
+                      className="object-cover rounded-lg h-56 w-full"
                     />
                     <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
                     <div className="absolute bottom-0 left-0 right-0 text-white bg-black/50 rounded-b-lg p-2">
