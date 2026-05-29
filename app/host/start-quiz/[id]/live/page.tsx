@@ -115,7 +115,7 @@ export default function HistoryPage() {
       });
 
       toast.success("Kuis selesai!");
-      setQuizFinished(true);
+      router.push(`/host/start-quiz/${params.id}/live/leaderboard`);
     }
   };
 
