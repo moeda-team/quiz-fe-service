@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
-import { toast } from "sonner";
 import { useCharacters } from "@/hooks/useCharacter";
 import { useSocket } from "@/contexts/SocketContext";
 import { useRouter } from "next/navigation";
@@ -65,7 +64,6 @@ export default function CodePage() {
 
   const handleSubmit = () => {
     if (validateForm()) {
-      toast.success("Validasi berhasil!");
       if (socket?.connected) {
         socket.emit('participant:join', { 
           joinCode: joinCode,
