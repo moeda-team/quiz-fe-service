@@ -348,7 +348,7 @@ export default function WaitingRoomPage() {
     const handleWaitingRoomUpdated = (data: {
       sessionId?: string;
       joinCode?: string;
-      participants: Array<{ id: string; name: string; avatar?: string }>;
+      participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
       console.log('📡 WAITING_ROOM:UPDATED EVENT RECEIVED!', data);
 
@@ -375,7 +375,7 @@ export default function WaitingRoomPage() {
               players: data.participants.map((p) => ({
                 id: p.id,
                 name: p.name,
-                avatar: p.avatar || undefined
+                avatar: p.profileCharacter?.fullImage
               }))
             };
             console.log('📡 ROOM DATA CREATED WITH PARTICIPANTS:', newRoomData);
@@ -388,7 +388,7 @@ export default function WaitingRoomPage() {
             players: data.participants.map((p) => ({
               id: p.id,
               name: p.name,
-              avatar: p.avatar || undefined
+              avatar: p.profileCharacter?.fullImage
             }))
           };
           console.log('📡 ROOM DATA UPDATED WITH PARTICIPANTS:', updated);

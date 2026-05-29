@@ -117,11 +117,12 @@ export default function CodePage() {
     const handleWaitingRoomUpdated = (data: {
       sessionId?: string;
       joinCode?: string;
-      participants: Array<{ id: string; name: string; avatar?: string }>;
+      participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
       
       // Update room data with new participants
       if (data.participants) {
+        console.log("data.participants", data.participants)
         setRoomData(prev => {
           if (!prev) {
             // If no roomData exists, create it with the received data
@@ -132,10 +133,9 @@ export default function CodePage() {
               players: data.participants.map((p) => ({
                 id: p.id,
                 name: p.name,
-                avatar: p.avatar || undefined
+                avatar: p.profileCharacter?.fullImage || undefined
               }))
             };
-            console.log('📡 ROOM DATA CREATED WITH PARTICIPANTS:', newRoomData);
             return newRoomData;
           }
 
@@ -145,11 +145,9 @@ export default function CodePage() {
             players: data.participants.map((p) => ({
               id: p.id,
               name: p.name,
-              avatar: p.avatar || undefined
+              avatar: p.profileCharacter?.fullImage || undefined
             }))
           };
-          console.log('📡 ROOM DATA UPDATED WITH PARTICIPANTS:', updated);
-          console.log('📡 Total participants now:', updated.players.length);
           return updated;
         });
       }
@@ -157,8 +155,13 @@ export default function CodePage() {
 
     socket.on("waiting_room:updated", handleWaitingRoomUpdated);
 
+    socket.on('quiz:started', (data) => {
+      console.log(data)
+    });
+
     return () => {
       socket.off("waiting_room:updated", handleWaitingRoomUpdated);
+      socket.off('quiz:started');
     };
   }, [socket]);
 
@@ -202,7 +205,7 @@ export default function CodePage() {
                   <div className="relative mb-1">
                     {/* Avatar Character */}
                     <div className="relative w-38 h-38 flex items-center justify-center z-10">
-                      <Image src={player.avatar || "/character/char-1.svg"} alt={player.name} width={80} height={80} className="w-full h-full object-contain drop-shadow-lg" />
+                      <img src={player.avatar || "/character/char-1.svg"} alt={player.name} width={80} height={80} className="w-full h-full object-contain drop-shadow-lg" />
                       <span className="absolute text-xs font-bold bottom-8 left-1/2 transform -translate-x-1/2 z-10 text-amber-700" style={{ fontFamily: 'Varela Round, serif' }}>
                         {player.name.length > 10 ? player.name.substring(0,10) + '...' : player.name}
                       </span>
