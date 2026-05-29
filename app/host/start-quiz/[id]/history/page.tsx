@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "date-fns";
+import Loading from "@/components/button/Loading";
 
 export default function HistoryPage() {
   const params = useParams();
@@ -27,6 +28,7 @@ export default function HistoryPage() {
   const [quizdata, setQuizdata] = useState<Quiz | null>(null);
   const [history, setHistory] = useState<QuizHistory[]>([]);
   const [historyDetail, setHistoryDetail] = useState<QuizHistoryDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -34,12 +36,14 @@ export default function HistoryPage() {
       try {
         const response = await getQuizById(params.id as string);
         if (!response) return;
-        
+
         const quizData: Quiz = ('data' in response && response.data) ? response.data : response as Quiz;
 
         setQuizdata(quizData);
       } catch {
         toast.error("Gagal mengambil data kuis");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -50,7 +54,7 @@ export default function HistoryPage() {
     const fetchHistory = async () => {
       if (!params.id) return;
       try {
-        
+
         const response = await getHistory(params.id as string);
         if (!response) return;
 
@@ -58,6 +62,8 @@ export default function HistoryPage() {
 
       } catch {
         toast.error("Gagal mengambil data history");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -74,6 +80,10 @@ export default function HistoryPage() {
     }
   };
   
+  if (loading) {
+    return <Loading fullscreen text="Memuat data..." />;
+  }
+
   return (
       <div className="min-h-screen bg-linear-to-br from-orange-400 via-pink-500 to-purple-600 relative overflow-hidden">
         
@@ -93,7 +103,7 @@ export default function HistoryPage() {
 
         {/* back */}
         <div className="relative w-full flex justify-start p-4">
-          <button onClick={() => router.back()} className="">
+          <button onClick={() => router.push(`/host/start-quiz`)} className="">
             <Image
               src="/back.svg"
               alt="Back"

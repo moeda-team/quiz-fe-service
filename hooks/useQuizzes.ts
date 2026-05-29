@@ -22,6 +22,20 @@ export interface Quiz {
   theme_id?: string;
 }
 
+export interface Character {
+  id: string;
+  name: string;
+  profileImage: string;
+  fullImage: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string | null;
+  deletedAt: string | null;
+  deletedBy: string | null;
+}
+
+
 export function useQuizzes(searchQuery: string = "") {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +43,7 @@ export function useQuizzes(searchQuery: string = "") {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [characters, setCharacters] = useState<Character[]>([]);
 
   const fetchQuizzes = useCallback(async (pageNum: number, search: string, append: boolean = false) => {
     try {
@@ -207,5 +222,22 @@ export function useQuizzes(searchQuery: string = "") {
     }
   }, []);
 
-  return { quizzes, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById, getHistory, getHistoryDetail };
+  const fetchCharacters = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiGet<{ data: Character[] }>("/profile-characters");
+      const charactersData = Array.isArray(response) ? response : (response.data || []);
+      setCharacters(charactersData);
+      return charactersData;
+    } catch (err: ErrorType) {
+      console.error("Failed to fetch characters:", err);
+      setError(getErrorMessage(err));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { quizzes, characters, fetchCharacters, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById, getHistory, getHistoryDetail };
 }

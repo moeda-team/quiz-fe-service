@@ -8,6 +8,7 @@ import { QuizHistoryDetail } from "@/types/quiz";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
+import Loading from "@/components/button/Loading";
 
 export default function LeaderboardPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function LeaderboardPage() {
       const sessionId = getCookie(`quiz_session_${quizId}_${hostId}`);
 
       if (!sessionId) {
-        console.log('No session ID found');
+        router.push(`/host/start-quiz/${quizId}/history`);
         setIsLoading(false);
         return;
       }
@@ -53,11 +54,7 @@ export default function LeaderboardPage() {
   }, [params.id, session, getHistoryDetail]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-white">Loading leaderboard...</div>
-      </div>
-    );
+    return <Loading fullscreen text="Memuat leaderboard..." />;
   }
 
   if (!leaderboardData) {
@@ -144,7 +141,7 @@ export default function LeaderboardPage() {
             />
             <div className="absolute top-18 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <h1 className="text-lg font-bold text-gray-800">
-                {leaderboardData.leaderboard.length > 0 ? leaderboardData.leaderboard[0].name.length > 10 ? leaderboardData.leaderboard[1].name.substring(0, 10) + '...' : leaderboardData.leaderboard[1].name : 'N/A'}
+                {leaderboardData.leaderboard.length > 0 ? leaderboardData.leaderboard[0].name.length > 10 ? leaderboardData.leaderboard[0].name.substring(0, 10) + '...' : leaderboardData.leaderboard[0].name : 'N/A'}
               </h1>
             </div>
             <div className="absolute top-36 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
