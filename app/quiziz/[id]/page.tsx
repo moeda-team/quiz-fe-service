@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useSocket } from "@/contexts/SocketContext";
+import Loading from "@/components/button/Loading";
+import { useRouter } from "next/navigation";
 
 interface Player {
   id: string;
@@ -22,7 +24,9 @@ interface WaitingRoomData {
 
 export default function CodePage() {
   const { socket } = useSocket();
+  const router = useRouter();
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -122,7 +126,6 @@ export default function CodePage() {
       
       // Update room data with new participants
       if (data.participants) {
-        console.log("data.participants", data.participants)
         setRoomData(prev => {
           if (!prev) {
             // If no roomData exists, create it with the received data
@@ -156,7 +159,21 @@ export default function CodePage() {
     socket.on("waiting_room:updated", handleWaitingRoomUpdated);
 
     socket.on('quiz:started', (data) => {
-      console.log(data)
+      if (data.message === 'Quiz started!') {
+        console.log('Quiz started!', data);
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+        }, 1500);
+      }
+    });
+
+    socket.on('quiz:ended', (data) => {
+      console.log('Quiz ended!', data);
+      setLoading(true);
+      setTimeout(() => {
+        router.push(`/quiziz/${data.sessionId}/leaderboard`);
+      }, 1500);
     });
 
     return () => {
@@ -181,6 +198,10 @@ export default function CodePage() {
         </div>
 
         <GlobalMusicPlayer />
+
+        {loading && (
+          <Loading fullscreen />
+        )}
 
         <div className="flex h-[80vh] w-full flex-col items-center justify-start rounded-2xl py-16">
           {/* Players Area */}
@@ -211,7 +232,7 @@ export default function CodePage() {
                       className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
                       style={{ fontFamily: "Varela Round, serif" }}
                     >
-                      <div className="text-center">
+                      <div className="text-center text-10 w-44">
                         {player.name.length > 12
                           ? player.name.substring(0, 12) + "..."
                           : player.name}
