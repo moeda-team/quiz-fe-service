@@ -7,6 +7,8 @@ import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useSocket } from "@/contexts/SocketContext";
 import Loading from "@/components/button/Loading";
 import { useRouter } from "next/navigation";
+import { Question } from "@/hooks/useQuestions";
+import QuizTimer from "@/components/QuizTimer";
 
 interface Player {
   id: string;
@@ -27,6 +29,12 @@ export default function CodePage() {
   const router = useRouter();
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Quiz state
+  const [isStart, setIsStart] = useState(true);
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -160,9 +168,11 @@ export default function CodePage() {
 
     socket.on('quiz:started', (data) => {
       if (data.message === 'Quiz started!') {
-        console.log('Quiz started!', data);
         setLoading(true);
+        console.log(data.firstQuestion);
+        setQuestion(data.firstQuestion);
         setTimeout(() => {
+          setIsStart(true);
           setLoading(false);
         }, 1500);
       }
@@ -183,9 +193,9 @@ export default function CodePage() {
   }, [socket]);
 
   return (
-    <main className="mx-auto">
+    <main className="mx-auto w-full">
       <div 
-        className="mx-auto max-w-md bg-white px-5 shadow-sm h-[calc(100vh)] flex flex-col gap-4"
+        className="mx-auto w-full bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
         style={{
           backgroundImage: 'url(/bg-mobile.svg)',
           backgroundSize: 'cover',
@@ -193,8 +203,14 @@ export default function CodePage() {
           fontFamily: 'Varela Round',
         }}
       >
-        <div className="flex items-center justify-center">
-          <Image src="/logo-mobile.svg" alt="Logo" width={200} height={200} />
+        <div className="flex items-start justify-center rounded-4xl relative overflow-hidden">
+          <Image 
+            src="/logo-mobile.svg" 
+            alt="Logo" 
+            width={140} 
+            height={140}
+            className="w-44"
+          />
         </div>
 
         <GlobalMusicPlayer />
@@ -203,46 +219,104 @@ export default function CodePage() {
           <Loading fullscreen />
         )}
 
-        <div className="flex h-[80vh] w-full flex-col items-center justify-start rounded-2xl py-16">
+        <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-8">
           {/* Players Area */}
-          <div className="relative w-full flex-1 min-h-[360px] md:min-h-[420px]">
-            {playerStyles.map((player) => (
-              <div
-                key={player.id}
-                className="absolute flex flex-col items-center"
-                style={{
-                  left: `${player.left}%`,
-                  top: `${player.top}%`,
-                  animation: `float ${player.duration}s ease-in-out ${player.delay}s infinite alternate`,
-                  zIndex: player.zIndex,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                {/* Avatar */}
-                <div className="relative flex items-center justify-center">
-                  <div className="relative w-32">
-                    <img
-                      src={player.avatar}
-                      alt={player.name}
-                      className="w-full h-full object-contain drop-shadow-lg"
-                    />
+          {isStart ? (
+            <div 
+              className="flex flex-col items-center gap-2 sm:gap-4 w-[80%] h-full rounded-2xl relative overflow-y-auto"
+              style={{
+                backgroundImage: 'url(/bg-answere.svg)',
+                backgroundSize: 'contain',
+                backgroundPosition: 'top',
+                fontFamily: 'Varela Round',
+                backgroundRepeat: 'no-repeat',
+              }}
+            >
+              {/* timer */}
+              <div className="text-red-600 absolute left-6 top-6.5 pr-3 text-lg font-bold pb-4 sm:pb-6 flex-shrink-0">
+                <QuizTimer timeLimit={question?.timeLimit ?? 30} />
+              </div>
 
-                    {/* Name */}
-                    <span
-                      className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
-                      style={{ fontFamily: "Varela Round, serif" }}
-                    >
-                      <div className="text-center text-10 w-44">
-                        {player.name.length > 12
-                          ? player.name.substring(0, 12) + "..."
-                          : player.name}
+              {/* question counter */}
+              <div className="text-black text-base sm:text-lg font-bold pt-2 flex-shrink-0">
+                {currentQuestion + 1}/4
+              </div>
+              
+              {/* question text */}
+              <div className="text-black text-xs sm:text-base px-3 sm:px-6 py-4 w-full text-center font-bold flex-shrink-0">
+                {question?.text}
+              </div>
+
+              {/* image */}
+              {question?.imageUrl && (
+                <div className="flex-shrink-0 rounded-xl h-auto">
+                  <img
+                    src={question?.imageUrl || "/images/bg-main.webp"}
+                    alt="Quiz"
+                    className="object-cover object-center rounded-xl w-full sm:w-40 h-24 sm:h-40"
+                  />
+                </div>
+              )}
+                
+              {/* options area - flexible center */}
+              <div className="flex-1 flex flex-col items-center justify-start px-2 sm:px-4 w-[70%]">
+                {question?.type === 'ESSAY' ? (
+                  <p className="text-amber-900 text-base sm:text-2xl font-bold text-center">Sedang dijawab peserta ...</p>
+                ) : (
+                  <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
+                    {question?.options?.map((option, index) => (
+                      <div
+                        key={index}
+                        className="text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center"
+                      >
+                        {String.fromCharCode(65 + index)}. {option.text}
                       </div>
-                    </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+            </div>
+          ) : 
+            <div className="relative w-full flex-1 min-h-64 sm:min-h-80 md:min-h-[420px]">
+              {playerStyles.map((player) => (
+                <div
+                  key={player.id}
+                  className="absolute flex flex-col items-center"
+                  style={{
+                    left: `${player.left}%`,
+                    top: `${player.top}%`,
+                    animation: `float ${player.duration}s ease-in-out ${player.delay}s infinite alternate`,
+                    zIndex: player.zIndex,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="relative w-16 sm:w-24 md:w-32">
+                      <img
+                        src={player.avatar}
+                        alt={player.name}
+                        className="w-full h-full object-contain drop-shadow-lg"
+                      />
+
+                      {/* Name */}
+                      <span
+                        className="absolute bottom-1 sm:bottom-3 left-1/2 -translate-x-1/2 px-1 sm:px-2 py-0.5 text-6px sm:text-9px md:text-10px font-bold text-amber-700 w-20 sm:w-44"
+                        style={{ fontFamily: "Varela Round, serif" }}
+                      >
+                        <div className="text-center text-xs sm:text-sm break-words">
+                          {player.name.length > 12
+                            ? player.name.substring(0, 12) + "..."
+                            : player.name}
+                        </div>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          }
   
           <style>{`
             @keyframes float {

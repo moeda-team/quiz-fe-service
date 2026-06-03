@@ -46,5 +46,5 @@ export default function QuizTimer({ timeLimit, onTimeUp }: QuizTimerProps) {
     return () => clearInterval(timer);
   }, [timeLimit, onTimeUp]);
 
-  return <span>{timeLeft}s</span>;
+  return <span>{timeLeft}</span>;
 }
