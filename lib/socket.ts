@@ -8,6 +8,24 @@ class SocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private lockedSocketId: string | null = null;
+
+  // Lock socket ID to a specific value
+  lockSocketId(socketId: string): void {
+    this.lockedSocketId = socketId;
+    console.log('🔒 Socket ID locked to:', socketId);
+  }
+
+  // Get locked socket ID
+  getLockedSocketId(): string | null {
+    return this.lockedSocketId;
+  }
+
+  // Clear locked socket ID
+  clearLockedSocketId(): void {
+    this.lockedSocketId = null;
+    console.log('🔓 Socket ID unlocked');
+  }
 
   // Connect to socket server
   connect(userId?: string): Promise<Socket> {

@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { useSocket } from '@/contexts/SocketContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import Image from 'next/image';
+import Swal from 'sweetalert2';
 import { QuizDetailFromStorage } from '@/types/quiz';
 import GlobalMusicPlayer from '@/components/GlobalMusicPlayer';
+import { RefreshCcw } from 'lucide-react';
 
 interface Player {
   id: string;
@@ -42,6 +44,7 @@ export default function WaitingRoomPage() {
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const sessionCreationAttempted = useRef(false);
   const [particleStyles, setParticleStyles] = useState<Array<{
     left: string;
     top: string;
@@ -71,6 +74,132 @@ export default function WaitingRoomPage() {
     }));
     setTimeout(() => setParticleStyles(styles), 0);
   }, []);
+
+  // Prevent back button and keyboard shortcuts with SweetAlert confirmation
+  useEffect(() => {
+    let isNavigating = false;
+
+    // Handle keyboard shortcuts (F5, Ctrl+R, Ctrl+W, Alt+Left, etc.)
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (isNavigating) return;
+
+      // F5 or Ctrl+R
+      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        isNavigating = true;
+        const result = await Swal.fire({
+          title: 'Yakin ingin keluar?',
+          text: 'Waiting room akan ditutup jika Anda keluar',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Ya, keluar',
+          cancelButtonText: 'Batal',
+          background: '#1a1a2e',
+          color: '#fff'
+        });
+        if (result.isConfirmed) {
+          window.location.reload();
+        } else {
+          isNavigating = false;
+        }
+      }
+      // Ctrl+W or Alt+F4
+      else if ((e.ctrlKey && e.key === 'w') || (e.altKey && e.key === 'F4')) {
+        e.preventDefault();
+        isNavigating = true;
+        const result = await Swal.fire({
+          title: 'Yakin ingin keluar?',
+          text: 'Waiting room akan ditutup jika Anda keluar',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Ya, keluar',
+          cancelButtonText: 'Batal',
+          background: '#1a1a2e',
+          color: '#fff'
+        });
+        if (result.isConfirmed) {
+          window.close();
+        } else {
+          isNavigating = false;
+        }
+      }
+      // Alt+Left (back)
+      else if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        isNavigating = true;
+        const result = await Swal.fire({
+          title: 'Yakin ingin keluar?',
+          text: 'Waiting room akan ditutup jika Anda keluar',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Ya, keluar',
+          cancelButtonText: 'Batal',
+          background: '#1a1a2e',
+          color: '#fff'
+        });
+        if (result.isConfirmed) {
+          router.back();
+        } else {
+          isNavigating = false;
+        }
+      }
+    };
+
+    // Handle browser back button
+    const handlePopState = async (e: PopStateEvent) => {
+      if (isNavigating) return;
+      e.preventDefault();
+      isNavigating = true;
+      
+      // Push state back to prevent actual navigation
+      window.history.pushState(null, '', window.location.href);
+      
+      const result = await Swal.fire({
+        title: 'Yakin ingin keluar?',
+        text: 'Waiting room akan ditutup jika Anda keluar',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, keluar',
+        cancelButtonText: 'Batal',
+        background: '#1a1a2e',
+        color: '#fff'
+      });
+      
+      if (result.isConfirmed) {
+        router.back();
+      } else {
+        isNavigating = false;
+      }
+    };
+
+    // Handle browser refresh/close from UI (native dialog fallback)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    // Add initial history entry to intercept back button
+    window.history.pushState(null, '', window.location.href);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [router]);
 
   // Generate grid-based positions with random offset to avoid overlap
   useEffect(() => {
@@ -177,8 +306,9 @@ export default function WaitingRoomPage() {
       socket.emit('host:get_waiting_room', { 
         sessionId: existingSessionId
       });
-    } else {
-      // Create new session
+    } else if (!sessionCreationAttempted.current) {
+      // Create new session (only if not already attempted)
+      sessionCreationAttempted.current = true;
       socket.emit('host:create_session', {
         quizId,
         hostId,
@@ -188,6 +318,9 @@ export default function WaitingRoomPage() {
 
     // Listen for session created response
     const handleSessionCreated = (response: SessionCreatedResponse) => {
+      // Reset the attempted flag since session was successfully created
+      sessionCreationAttempted.current = false;
+      
       // Save to cookies
       setCookie(`quiz_session_${quizId}_${hostId}`, response.sessionId, 1);
       setCookie(`quiz_joincode_${quizId}_${hostId}`, response.joinCode, 1);
@@ -210,30 +343,12 @@ export default function WaitingRoomPage() {
         sessionId: response.sessionId
       });
     };
-    
-    // Listen for host:get_waiting_room response
-    const handleHostGetWaitingRoom = (data: { joinCode: string; participants: Array<{ id: string; name: string; joinedAt: string }> }) => {
-      console.log('📡 HOST:GET_WAITING_ROOM RESPONSE:', data);
-      setRoomData(prev => {
-        const updated = prev ? {
-          ...prev,
-          roomCode: data.joinCode,
-          players: data.participants.map((p) => ({
-            id: p.id,
-            name: p.name,
-            avatar: undefined
-          }))
-        } : null;
-        console.log('📡 ROOM DATA UPDATED:', updated);
-        return updated;
-      });
-    };
 
     // Handle waiting room updated event
     const handleWaitingRoomUpdated = (data: {
       sessionId?: string;
       joinCode?: string;
-      participants: Array<{ id: string; name: string; avatar?: string }>;
+      participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
       console.log('📡 WAITING_ROOM:UPDATED EVENT RECEIVED!', data);
 
@@ -260,7 +375,7 @@ export default function WaitingRoomPage() {
               players: data.participants.map((p) => ({
                 id: p.id,
                 name: p.name,
-                avatar: p.avatar || undefined
+                avatar: p.profileCharacter?.fullImage
               }))
             };
             console.log('📡 ROOM DATA CREATED WITH PARTICIPANTS:', newRoomData);
@@ -273,7 +388,7 @@ export default function WaitingRoomPage() {
             players: data.participants.map((p) => ({
               id: p.id,
               name: p.name,
-              avatar: p.avatar || undefined
+              avatar: p.profileCharacter?.fullImage
             }))
           };
           console.log('📡 ROOM DATA UPDATED WITH PARTICIPANTS:', updated);
@@ -286,7 +401,6 @@ export default function WaitingRoomPage() {
     // Set up event listeners
     socket.on('session:created', handleSessionCreated);
     socket.on('waiting_room:updated', handleWaitingRoomUpdated);
-    socket.on('host:get_waiting_room', handleHostGetWaitingRoom);
 
     // Add error handling
     socket.on('error', (error) => {
@@ -301,7 +415,6 @@ export default function WaitingRoomPage() {
     return () => {
       socket.off('session:created', handleSessionCreated);
       socket.off('waiting_room:updated', handleWaitingRoomUpdated);
-      socket.off('host:get_waiting_room', handleHostGetWaitingRoom);
       socket.off('error');
       socket.off('connect_error');
     };
@@ -314,7 +427,7 @@ export default function WaitingRoomPage() {
     
     // Simulate starting quiz
     setTimeout(() => {
-      router.push(`/host/quiz/${quizId}/live`);
+      router.push(`/host/start-quiz/${quizId}/live`);
     }, 2000);
   };
 
@@ -358,11 +471,6 @@ export default function WaitingRoomPage() {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
-
   if (isLoading || !session) {
     return (
       <div className="min-h-screen bg-linear-to-br from-orange-400 via-pink-500 to-purple-600 flex items-center justify-center">
@@ -384,9 +492,6 @@ export default function WaitingRoomPage() {
           >
             Waiting Room Tidak Ditemukan
           </h2>
-          <Button onClick={handleBack} className="bg-amber-50 text-amber-900 hover:bg-amber-100 border-4 border-amber-700/50" style={{ fontFamily: 'Varela Round, serif' }}>
-            Kembali
-          </Button>
         </div>
       </div>
     );
@@ -516,6 +621,13 @@ export default function WaitingRoomPage() {
             🔄 Refresh
           </Button>
         </div>
+        
+        <Button 
+          onClick={handleRefreshWaitingRoom}
+          className="fixed bottom-24 right-4 z-50 w-12 h-12 md:w-14 md:h-14 bg-amber-100/90 rounded-full flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-amber-700/20 hover:bg-white transition-all group active:scale-90"
+        >
+          <RefreshCcw size={24} className="text-amber-700" />
+        </Button>
       </div>
 
       {/* Animated particles */}
