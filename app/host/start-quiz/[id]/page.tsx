@@ -574,20 +574,33 @@ export default function WaitingRoomPage() {
                 top: `${player.top}%`,
                 animation: `float ${player.duration}s ease-in-out ${player.delay}s infinite alternate`,
                 zIndex: player.zIndex,
+                transform: "translate(-50%, -50%)",
               }}
             >
-                {/* Cloud Platform */}
-                <div className="relative mb-1">
-                  {/* Avatar Character */}
-                  <div className="relative w-38 h-38 flex items-center justify-center z-10">
-                    <Image src="/character/char-1.svg" alt={player.name} width={80} height={80} className="w-full h-full object-contain drop-shadow-lg" />
-                    <span className="absolute text-xs font-bold bottom-8 left-1/2 transform -translate-x-1/2 z-10 text-amber-700" style={{ fontFamily: 'Varela Round, serif' }}>
-                      {player.name.length > 10 ? player.name.substring(0,10) + '...' : player.name}
-                    </span>
-                  </div>
+              {/* Avatar */}
+              <div className="relative flex items-center justify-center">
+                <div className="relative w-32">
+                  <img
+                    src={player.avatar}
+                    alt={player.name}
+                    className="w-full h-full object-contain drop-shadow-lg"
+                  />
+
+                  {/* Name */}
+                  <span
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                    style={{ fontFamily: "Varela Round, serif" }}
+                  >
+                    <div className="text-center text-10 w-44">
+                      {player.name.length > 12
+                        ? player.name.substring(0, 12) + "..."
+                        : player.name}
+                    </div>
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
 
         <style>{`

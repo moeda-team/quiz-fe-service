@@ -193,12 +193,12 @@ export default function HistoryPage() {
                 </div>
 
                 {/* timer */}
-                <div className="text-red-600 text-3xl font-bold absolute top-24 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="text-red-600 text-2xl font-bold absolute top-22 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <QuizTimer timeLimit={questions?.[currentQuestion]?.timeLimit ?? 30} onTimeUp={handleTimeUp} />
                 </div>
 
                 {/* question */}
-                <div className="text-black text-2xl px-24 w-full text-center font-bold absolute top-36 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="text-black text-2xl px-24 w-full text-center font-bold absolute top-32 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   {questions?.[currentQuestion]?.text}
                 </div>
 
