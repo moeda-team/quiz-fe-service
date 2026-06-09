@@ -23,6 +23,16 @@ interface WaitingRoomData {
   status: 'waiting' | 'starting' | 'started';
 }
 
+interface AnswerPayload {
+  sessionId: string;
+  participantId: string;
+  questionId: string;
+  timeTaken: number;
+  optionId?: string;
+  textAnswer?: string;
+  puzzleOrder?: number[];
+}
+
 
 export default function CodePage() {
   const { socket } = useSocket();
@@ -31,10 +41,16 @@ export default function CodePage() {
   const [loading, setLoading] = useState(false);
 
   // Quiz state
-  const [isStart, setIsStart] = useState(true);
+  const [isStart, setIsStart] = useState(false);
   const [question, setQuestion] = useState<Question | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [totalQuestions, settotalQuestions] = useState(0);
   
+  // Answer state
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [textAnswer, setTextAnswer] = useState('');
+  const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
+  const [answerStartTime, setAnswerStartTime] = useState<number>(0);
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -113,6 +129,46 @@ export default function CodePage() {
     return null;
   };
 
+  const submitAnswer = () => {
+    if (!socket || !question || !roomData) return;
+
+    const timeTaken = Math.round((Date.now() - answerStartTime) / 1000);
+    const participantId = getCookie("participant_id") || "";
+    
+    const answerPayload: AnswerPayload = {
+      sessionId: roomData.roomId,
+      participantId,
+      questionId: question.id,
+      timeTaken,
+    };
+    console.log(question.type, selectedOption, textAnswer, puzzleOrder);
+    if (question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE') {
+      if (selectedOption) {
+        answerPayload.optionId = selectedOption;
+      }
+    } else if (question.type === 'ESSAY') {
+      if (textAnswer.trim()) {
+        answerPayload.textAnswer = textAnswer;
+      }
+    } else if (question.type === 'PUZZLE') {
+      if (puzzleOrder.length > 0) {
+        answerPayload.puzzleOrder = puzzleOrder;
+      }
+    }
+
+    console.log('Submitting answer:', answerPayload);
+    socket.emit('participant:answer', answerPayload);
+
+    // Reset answer state for next question
+    setSelectedOption(null);
+    setTextAnswer('');
+    setPuzzleOrder([]);
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+  };
+
   useEffect(() => {
     if (!socket) return;
 
@@ -168,9 +224,34 @@ export default function CodePage() {
 
     socket.on('quiz:started', (data) => {
       if (data.message === 'Quiz started!') {
+        console.log(data)
         setLoading(true);
-        console.log(data.firstQuestion);
+        settotalQuestions(data.totalQuestions);
+        setCurrentQuestion(1);
         setQuestion(data.firstQuestion);
+        setSelectedOption(null);
+        setTextAnswer('');
+        setPuzzleOrder([]);
+        setAnswerStartTime(Date.now());
+        setTimeout(() => {
+          setIsStart(true);
+          setLoading(false);
+        }, 1500);
+      }
+    });
+
+    socket.on('quiz:next_question', (data) => {
+      submitAnswer();
+      if (data) {
+        console.log(data)
+        setLoading(true);
+        settotalQuestions(data.totalQuestions);
+        setCurrentQuestion(prev => prev + 1);
+        setQuestion(data.question);
+        setSelectedOption(null);
+        setTextAnswer('');
+        setPuzzleOrder([]);
+        setAnswerStartTime(Date.now());
         setTimeout(() => {
           setIsStart(true);
           setLoading(false);
@@ -189,6 +270,8 @@ export default function CodePage() {
     return () => {
       socket.off("waiting_room:updated", handleWaitingRoomUpdated);
       socket.off('quiz:started');
+      socket.off('quiz:next_question');
+      socket.off('quiz:ended');
     };
   }, [socket]);
 
@@ -219,11 +302,11 @@ export default function CodePage() {
           <Loading fullscreen />
         )}
 
-        <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-8">
+        <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-2">
           {/* Players Area */}
           {isStart ? (
             <div 
-              className="flex flex-col items-center gap-2 sm:gap-4 w-[80%] h-full rounded-2xl relative overflow-y-auto"
+              className="flex flex-col items-center gap-2 w-[90%] h-full rounded-2xl relative overflow-y-auto"
               style={{
                 backgroundImage: 'url(/bg-answere.svg)',
                 backgroundSize: 'contain',
@@ -233,17 +316,19 @@ export default function CodePage() {
               }}
             >
               {/* timer */}
-              <div className="text-red-600 absolute left-6 top-6.5 pr-3 text-lg font-bold pb-4 sm:pb-6 flex-shrink-0">
-                <QuizTimer timeLimit={question?.timeLimit ?? 30} />
+              <div className="absolute w-full">
+                <div className="text-red-600 w-22 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
+                  <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
+                </div>
               </div>
 
               {/* question counter */}
               <div className="text-black text-base sm:text-lg font-bold pt-2 flex-shrink-0">
-                {currentQuestion + 1}/4
+                {currentQuestion}/{totalQuestions}
               </div>
               
               {/* question text */}
-              <div className="text-black text-xs sm:text-base px-3 sm:px-6 py-4 w-full text-center font-bold flex-shrink-0">
+              <div className="text-black text-xs sm:text-base px-8 pt-8 w-full text-center font-bold flex-shrink-0">
                 {question?.text}
               </div>
 
@@ -253,7 +338,7 @@ export default function CodePage() {
                   <img
                     src={question?.imageUrl || "/images/bg-main.webp"}
                     alt="Quiz"
-                    className="object-cover object-center rounded-xl w-full sm:w-40 h-24 sm:h-40"
+                    className="object-cover object-center rounded-xl w-full h-44"
                   />
                 </div>
               )}
@@ -261,16 +346,70 @@ export default function CodePage() {
               {/* options area - flexible center */}
               <div className="flex-1 flex flex-col items-center justify-start px-2 sm:px-4 w-[70%]">
                 {question?.type === 'ESSAY' ? (
-                  <p className="text-amber-900 text-base sm:text-2xl font-bold text-center">Sedang dijawab peserta ...</p>
-                ) : (
+                  <div className="w-full flex flex-col gap-2">
+                    <textarea
+                      value={textAnswer}
+                      onChange={(e) => setTextAnswer(e.target.value)}
+                      placeholder="Tulis jawaban Anda di sini..."
+                      className="w-full px-3 py-2 border border-amber-700 rounded-lg text-amber-900 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-700 text-sm sm:text-base min-h-24"
+                    />
+                  </div>
+                ) : question?.type === 'TRUE_FALSE' ? (
                   <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
                     {question?.options?.map((option, index) => (
                       <div
                         key={index}
-                        className="text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center"
+                        className={`${
+                          selectedOption === option.id ? 'bg-green-600' : 'bg-[#5A3319]'
+                        } text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center`}
+                        onClick={() => setSelectedOption(option.id??"")}
                       >
                         {String.fromCharCode(65 + index)}. {option.text}
                       </div>
+                    ))}
+                  </div>
+                ) : question?.type === 'PUZZLE' ? (
+                  <div className="w-full flex flex-col gap-2">
+                    <p className="text-amber-900 text-sm sm:text-base font-bold text-center">
+                      Susun potongan puzzle dalam urutan yang benar
+                    </p>
+                    <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
+                      {question?.options?.map((option, index) => (
+                        <div
+                          key={index}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer?.setData('index', index.toString());
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const draggedIndex = parseInt(e.dataTransfer?.getData('index') || '0');
+                            const newOrder = [...puzzleOrder];
+                            [newOrder[draggedIndex], newOrder[index]] = [newOrder[index], newOrder[draggedIndex]];
+                            setPuzzleOrder(newOrder);
+                          }}
+                          onDragOver={(e) => e.preventDefault()}
+                          className="text-white text-xs sm:text-sm font-bold px-4 py-2 bg-[#5A3319] hover:bg-[#6B4429] min-w-fit sm:min-w-44 w-full rounded cursor-move hover:shadow-lg transition-all"
+                        >
+                          {String.fromCharCode(65 + index)}. {option.text}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
+                    {question?.options?.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedOption(option.id??"")}
+                        className={`text-white text-xs sm:text-sm font-bold px-4 py-1 w-full rounded-sm cursor-pointer transition-all ${
+                          selectedOption === option.id 
+                            ? 'bg-green-600 scale-105' 
+                            : 'bg-[#5A3319] hover:bg-[#6B4429]'
+                        } active:scale-95`}
+                      >
+                        {String.fromCharCode(65 + index)}. {option.text}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -293,7 +432,7 @@ export default function CodePage() {
                 >
                   {/* Avatar */}
                   <div className="relative flex items-center justify-center">
-                    <div className="relative w-16 sm:w-24 md:w-32">
+                    <div className="relative w-28">
                       <img
                         src={player.avatar}
                         alt={player.name}
@@ -302,10 +441,10 @@ export default function CodePage() {
 
                       {/* Name */}
                       <span
-                        className="absolute bottom-1 sm:bottom-3 left-1/2 -translate-x-1/2 px-1 sm:px-2 py-0.5 text-6px sm:text-9px md:text-10px font-bold text-amber-700 w-20 sm:w-44"
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
                         style={{ fontFamily: "Varela Round, serif" }}
                       >
-                        <div className="text-center text-xs sm:text-sm break-words">
+                        <div className="text-center text-10 w-44">
                           {player.name.length > 12
                             ? player.name.substring(0, 12) + "..."
                             : player.name}

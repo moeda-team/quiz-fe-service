@@ -105,7 +105,7 @@ export default function HistoryPage() {
         sessionId: sessionId || '',
         questionId
       });
-
+      console.log('Emitting host:next_question with sessionId:', sessionId, 'and questionId:', questionId);
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const nextSessionId = getCookie(`quiz_session_${params.id}_${session?.user?.id}`);
@@ -204,7 +204,7 @@ export default function HistoryPage() {
 
                 {/* image */}
                 {questions?.[currentQuestion]?.imageUrl && (
-                  <div className="absolute top-75 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl h-[180px]">
+                  <div className="absolute top-70 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl h-[180px]">
                     <img
                       src={questions?.[currentQuestion]?.imageUrl || "/images/bg-main.webp"}
                       alt="Quiz"
@@ -215,11 +215,11 @@ export default function HistoryPage() {
                   
                 {/* select question */}
                 {questions?.[currentQuestion]?.type === 'ESSAY' ? (
-                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-102' : 'top-75'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[80%]`}>
+                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-96' : 'top-70'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[80%]`}>
                     <p className="text-amber-900 text-2xl font-bold text-center">Sedang dijawab peserta ...</p>
                   </div>
                 ) : (
-                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-102' : 'top-75'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[80%]`}>
+                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-96' : 'top-70'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[80%]`}>
                     <div className={`grid gap-4 w-full ${questions?.[currentQuestion]?.options?.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     {questions?.[currentQuestion]?.options?.map((option, index) => (
                       <div
