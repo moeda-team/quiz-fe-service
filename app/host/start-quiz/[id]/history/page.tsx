@@ -155,7 +155,7 @@ export default function HistoryPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="w-full h-full bg-[#291B13] rounded-lg text-white">
+                  <div className="w-full h-96 overflow-auto bg-[#291B13] rounded-lg text-white">
                     <Table className="border-white">
                       <TableHeader>
                         <TableRow className="border-white hover:bg-transparent">
@@ -167,7 +167,7 @@ export default function HistoryPage() {
                           <TableHead className="text-white px-2 text-center w-24">#</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="border-white max-h-96 overflow-y-auto">
                         {history.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center py-4">
