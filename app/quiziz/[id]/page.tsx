@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useSocket } from "@/contexts/SocketContext";
 import Loading from "@/components/button/Loading";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Question } from "@/hooks/useQuestions";
 import QuizTimer from "@/components/QuizTimer";
 
@@ -33,8 +33,9 @@ interface AnswerPayload {
   puzzleOrder?: number[];
 }
 
-
 export default function CodePage() {
+  const params = useParams();
+  const sessionId = params.id;
   const { socket } = useSocket();
   const router = useRouter();
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
@@ -51,6 +52,22 @@ export default function CodePage() {
   const [textAnswer, setTextAnswer] = useState('');
   const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
   const [answerStartTime, setAnswerStartTime] = useState<number>(0);
+  
+  const roomDataRef = useRef<WaitingRoomData | null>(null);
+  const questionRef = useRef<Question | null>(null);
+  const answerStartTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    roomDataRef.current = roomData;
+  }, [roomData]);
+
+  useEffect(() => {
+    questionRef.current = question;
+  }, [question]);
+
+  useEffect(() => {
+    answerStartTimeRef.current = answerStartTime;
+  }, [answerStartTime]);
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -130,40 +147,63 @@ export default function CodePage() {
   };
 
   const submitAnswer = () => {
-    if (!socket || !question || !roomData) return;
+    const currentRoom = roomDataRef.current;
+    const currentQuestion = questionRef.current;
 
-    const timeTaken = Math.round((Date.now() - answerStartTime) / 1000);
-    const participantId = getCookie("participant_id") || "";
-    
+    console.log("QUESTION:", currentQuestion);
+    console.log("selectedOption", selectedOption);
+
+    if (!socket) return;
+
+    if (!currentRoom) {
+      console.warn("roomData masih null");
+      return;
+    }
+
+    if (!currentQuestion) {
+      console.warn("question masih null");
+      return;
+    }
+
+    const timeTaken = Math.round(
+      (Date.now() - answerStartTimeRef.current) / 1000
+    );
+
+    const participantId = getCookie("quiz_participantId") || "";
+
     const answerPayload: AnswerPayload = {
-      sessionId: roomData.roomId,
+      sessionId: currentRoom.roomId,
       participantId,
-      questionId: question.id,
+      questionId: currentQuestion.id,
       timeTaken,
     };
-    console.log(question.type, selectedOption, textAnswer, puzzleOrder);
-    if (question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE') {
+
+    if (
+      currentQuestion.type === "MULTIPLE_CHOICE" ||
+      currentQuestion.type === "TRUE_FALSE"
+    ) {
       if (selectedOption) {
         answerPayload.optionId = selectedOption;
       }
-    } else if (question.type === 'ESSAY') {
+    } else if (currentQuestion.type === "ESSAY") {
       if (textAnswer.trim()) {
         answerPayload.textAnswer = textAnswer;
       }
-    } else if (question.type === 'PUZZLE') {
+    } else if (currentQuestion.type === "PUZZLE") {
       if (puzzleOrder.length > 0) {
         answerPayload.puzzleOrder = puzzleOrder;
       }
     }
 
-    console.log('Submitting answer:', answerPayload);
-    socket.emit('participant:answer', answerPayload);
+    console.log("Submitting answer:", answerPayload);
 
-    // Reset answer state for next question
+    socket.emit("participant:answer", answerPayload);
+
     setSelectedOption(null);
-    setTextAnswer('');
+    setTextAnswer("");
     setPuzzleOrder([]);
     setLoading(true);
+
     setTimeout(() => {
       setLoading(false);
     }, 500);
@@ -187,14 +227,13 @@ export default function CodePage() {
       joinCode?: string;
       participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
-      
       // Update room data with new participants
       if (data.participants) {
         setRoomData(prev => {
           if (!prev) {
             // If no roomData exists, create it with the received data
             const newRoomData: WaitingRoomData = {
-              roomId: data.sessionId || '',
+              roomId: data.sessionId || sessionId?.toString() || '',
               roomCode: data.joinCode || '',
               status: 'waiting',
               players: data.participants.map((p) => ({
@@ -208,12 +247,13 @@ export default function CodePage() {
 
           const updated = {
             ...prev,
+            roomId: data.sessionId || prev.roomId,
             roomCode: data.joinCode || prev.roomCode,
             players: data.participants.map((p) => ({
               id: p.id,
               name: p.name,
-              avatar: p.profileCharacter?.fullImage || undefined
-            }))
+              avatar: p.profileCharacter?.fullImage || undefined,
+            })),
           };
           return updated;
         });
@@ -243,7 +283,6 @@ export default function CodePage() {
     socket.on('quiz:next_question', (data) => {
       submitAnswer();
       if (data) {
-        console.log(data)
         setLoading(true);
         settotalQuestions(data.totalQuestions);
         setCurrentQuestion(prev => prev + 1);
@@ -263,7 +302,7 @@ export default function CodePage() {
       console.log('Quiz ended!', data);
       setLoading(true);
       setTimeout(() => {
-        router.push(`/quiziz/${data.sessionId}/leaderboard`);
+        router.push(`/quiziz`);
       }, 1500);
     });
 
@@ -362,7 +401,7 @@ export default function CodePage() {
                         className={`${
                           selectedOption === option.id ? 'bg-green-600' : 'bg-[#5A3319]'
                         } text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center`}
-                        onClick={() => setSelectedOption(option.id??"")}
+                        onClick={() => {console.log("Selected Option:", option.id); setSelectedOption(option.id??"")}}
                       >
                         {String.fromCharCode(65 + index)}. {option.text}
                       </div>
@@ -401,7 +440,7 @@ export default function CodePage() {
                     {question?.options?.map((option, index) => (
                       <button
                         key={index}
-                        onClick={() => setSelectedOption(option.id??"")}
+                        onClick={() => {console.log("Selected Option:", option.id); setSelectedOption(option.id??"")}}
                         className={`text-white text-xs sm:text-sm font-bold px-4 py-1 w-full rounded-sm cursor-pointer transition-all ${
                           selectedOption === option.id 
                             ? 'bg-green-600 scale-105' 
