@@ -49,6 +49,7 @@ export default function CodePage() {
   
   // Answer state
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const selectedOptionRef = useRef<string | null>(null); // tambah ini
   const [textAnswer, setTextAnswer] = useState('');
   const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
   const [answerStartTime, setAnswerStartTime] = useState<number>(0);
@@ -57,6 +58,11 @@ export default function CodePage() {
   const questionRef = useRef<Question | null>(null);
   const answerStartTimeRef = useRef<number>(0);
 
+  // sync ref setiap kali state berubah
+  useEffect(() => {
+    selectedOptionRef.current = selectedOption;
+  }, [selectedOption]);
+  
   useEffect(() => {
     roomDataRef.current = roomData;
   }, [roomData]);
@@ -150,7 +156,7 @@ export default function CodePage() {
     const currentRoom = roomDataRef.current;
     const currentQuestion = questionRef.current;
 
-    console.log("QUESTION:", currentQuestion);
+    console.log("QUESTION:", currentQuestion?.type);
     console.log("selectedOption", selectedOption);
 
     if (!socket) return;
@@ -182,8 +188,8 @@ export default function CodePage() {
       currentQuestion.type === "MULTIPLE_CHOICE" ||
       currentQuestion.type === "TRUE_FALSE"
     ) {
-      if (selectedOption) {
-        answerPayload.optionId = selectedOption;
+      if (selectedOptionRef.current) {
+        answerPayload.optionId = selectedOptionRef.current;
       }
     } else if (currentQuestion.type === "ESSAY") {
       if (textAnswer.trim()) {
@@ -200,6 +206,7 @@ export default function CodePage() {
     socket.emit("participant:answer", answerPayload);
 
     setSelectedOption(null);
+    selectedOptionRef.current = null; // reset ref juga
     setTextAnswer("");
     setPuzzleOrder([]);
     setLoading(true);
@@ -281,13 +288,13 @@ export default function CodePage() {
     });
 
     socket.on('quiz:next_question', (data) => {
+      console.log(selectedOption)
       submitAnswer();
       if (data) {
         setLoading(true);
         settotalQuestions(data.totalQuestions);
         setCurrentQuestion(prev => prev + 1);
         setQuestion(data.question);
-        setSelectedOption(null);
         setTextAnswer('');
         setPuzzleOrder([]);
         setAnswerStartTime(Date.now());
