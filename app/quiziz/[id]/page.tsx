@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useSocket } from "@/contexts/SocketContext";
 import Loading from "@/components/button/Loading";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Question } from "@/hooks/useQuestions";
 import QuizTimer from "@/components/QuizTimer";
 
@@ -33,10 +33,18 @@ interface AnswerPayload {
   puzzleOrder?: number[];
 }
 
+interface LeaderboardPayload {
+  rank: number,
+  id: string,
+  name: string,
+  score: number
+}
 
 export default function CodePage() {
+  const params = useParams();
+  const sessionId = params.id;
+  const router = useRouter()
   const { socket } = useSocket();
-  const router = useRouter();
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -48,9 +56,33 @@ export default function CodePage() {
   
   // Answer state
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const selectedOptionRef = useRef<string | null>(null); // tambah ini
   const [textAnswer, setTextAnswer] = useState('');
   const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
   const [answerStartTime, setAnswerStartTime] = useState<number>(0);
+  const [isleaderboard, setIsLeaderboard] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardPayload[]>([]);
+  
+  const roomDataRef = useRef<WaitingRoomData | null>(null);
+  const questionRef = useRef<Question | null>(null);
+  const answerStartTimeRef = useRef<number>(0);
+
+  // sync ref setiap kali state berubah
+  useEffect(() => {
+    selectedOptionRef.current = selectedOption;
+  }, [selectedOption]);
+  
+  useEffect(() => {
+    roomDataRef.current = roomData;
+  }, [roomData]);
+
+  useEffect(() => {
+    questionRef.current = question;
+  }, [question]);
+
+  useEffect(() => {
+    answerStartTimeRef.current = answerStartTime;
+  }, [answerStartTime]);
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -130,40 +162,64 @@ export default function CodePage() {
   };
 
   const submitAnswer = () => {
-    if (!socket || !question || !roomData) return;
+    const currentRoom = roomDataRef.current;
+    const currentQuestion = questionRef.current;
 
-    const timeTaken = Math.round((Date.now() - answerStartTime) / 1000);
-    const participantId = getCookie("participant_id") || "";
-    
+    console.log("QUESTION:", currentQuestion?.type);
+    console.log("selectedOption", selectedOption);
+
+    if (!socket) return;
+
+    if (!currentRoom) {
+      console.warn("roomData masih null");
+      return;
+    }
+
+    if (!currentQuestion) {
+      console.warn("question masih null");
+      return;
+    }
+
+    const timeTaken = Math.round(
+      (Date.now() - answerStartTimeRef.current) / 1000
+    );
+
+    const participantId = getCookie("quiz_participantId") || "";
+
     const answerPayload: AnswerPayload = {
-      sessionId: roomData.roomId,
+      sessionId: currentRoom.roomId,
       participantId,
-      questionId: question.id,
+      questionId: currentQuestion.id,
       timeTaken,
     };
-    console.log(question.type, selectedOption, textAnswer, puzzleOrder);
-    if (question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE') {
-      if (selectedOption) {
-        answerPayload.optionId = selectedOption;
+
+    if (
+      currentQuestion.type === "MULTIPLE_CHOICE" ||
+      currentQuestion.type === "TRUE_FALSE"
+    ) {
+      if (selectedOptionRef.current) {
+        answerPayload.optionId = selectedOptionRef.current;
       }
-    } else if (question.type === 'ESSAY') {
+    } else if (currentQuestion.type === "ESSAY") {
       if (textAnswer.trim()) {
         answerPayload.textAnswer = textAnswer;
       }
-    } else if (question.type === 'PUZZLE') {
+    } else if (currentQuestion.type === "PUZZLE") {
       if (puzzleOrder.length > 0) {
         answerPayload.puzzleOrder = puzzleOrder;
       }
     }
 
-    console.log('Submitting answer:', answerPayload);
-    socket.emit('participant:answer', answerPayload);
+    console.log("Submitting answer:", answerPayload);
 
-    // Reset answer state for next question
+    socket.emit("participant:answer", answerPayload);
+
     setSelectedOption(null);
-    setTextAnswer('');
+    selectedOptionRef.current = null; // reset ref juga
+    setTextAnswer("");
     setPuzzleOrder([]);
     setLoading(true);
+
     setTimeout(() => {
       setLoading(false);
     }, 500);
@@ -187,14 +243,13 @@ export default function CodePage() {
       joinCode?: string;
       participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
-      
       // Update room data with new participants
       if (data.participants) {
         setRoomData(prev => {
           if (!prev) {
             // If no roomData exists, create it with the received data
             const newRoomData: WaitingRoomData = {
-              roomId: data.sessionId || '',
+              roomId: data.sessionId || sessionId?.toString() || '',
               roomCode: data.joinCode || '',
               status: 'waiting',
               players: data.participants.map((p) => ({
@@ -208,12 +263,13 @@ export default function CodePage() {
 
           const updated = {
             ...prev,
+            roomId: data.sessionId || prev.roomId,
             roomCode: data.joinCode || prev.roomCode,
             players: data.participants.map((p) => ({
               id: p.id,
               name: p.name,
-              avatar: p.profileCharacter?.fullImage || undefined
-            }))
+              avatar: p.profileCharacter?.fullImage || undefined,
+            })),
           };
           return updated;
         });
@@ -241,14 +297,13 @@ export default function CodePage() {
     });
 
     socket.on('quiz:next_question', (data) => {
+      console.log(selectedOption)
       submitAnswer();
       if (data) {
-        console.log(data)
         setLoading(true);
         settotalQuestions(data.totalQuestions);
         setCurrentQuestion(prev => prev + 1);
         setQuestion(data.question);
-        setSelectedOption(null);
         setTextAnswer('');
         setPuzzleOrder([]);
         setAnswerStartTime(Date.now());
@@ -260,11 +315,13 @@ export default function CodePage() {
     });
 
     socket.on('quiz:ended', (data) => {
-      console.log('Quiz ended!', data);
-      setLoading(true);
-      setTimeout(() => {
-        router.push(`/quiziz/${data.sessionId}/leaderboard`);
-      }, 1500);
+      console.log('Quiz ended!', data.leaderboard);
+      setLeaderboard(data.leaderboard)
+      setIsLeaderboard(true)
+      setLoading(false);
+      // setTimeout(() => {
+      //   router.push(`/quiziz`);
+      // }, 1500);
     });
 
     return () => {
@@ -302,182 +359,334 @@ export default function CodePage() {
           <Loading fullscreen />
         )}
 
-        <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-2">
-          {/* Players Area */}
-          {isStart ? (
-            <div 
-              className="flex flex-col items-center gap-2 w-[90%] h-full rounded-2xl relative overflow-y-auto"
-              style={{
-                backgroundImage: 'url(/bg-answere.svg)',
-                backgroundSize: 'contain',
-                backgroundPosition: 'top',
-                fontFamily: 'Varela Round',
-                backgroundRepeat: 'no-repeat',
-              }}
-            >
-              {/* timer */}
-              <div className="absolute w-full">
-                <div className="text-red-600 w-22 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
-                  <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
+        {!isleaderboard ? 
+          <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-2">
+            
+            {/* Players Area */}
+            {isStart ? (
+              <div 
+                className="flex flex-col items-center gap-2 w-[90%] h-full rounded-2xl relative overflow-y-auto"
+                style={{
+                  backgroundImage: 'url(/bg-answere.svg)',
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'top',
+                  fontFamily: 'Varela Round',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              >
+                {/* timer */}
+                <div className="absolute w-full">
+                  <div className="text-red-600 w-22 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
+                    <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
+                  </div>
                 </div>
-              </div>
 
-              {/* question counter */}
-              <div className="text-black text-base sm:text-lg font-bold pt-2 flex-shrink-0">
-                {currentQuestion}/{totalQuestions}
-              </div>
-              
-              {/* question text */}
-              <div className="text-black text-xs sm:text-base px-8 pt-8 w-full text-center font-bold flex-shrink-0">
-                {question?.text}
-              </div>
-
-              {/* image */}
-              {question?.imageUrl && (
-                <div className="flex-shrink-0 rounded-xl h-auto">
-                  <img
-                    src={question?.imageUrl || "/images/bg-main.webp"}
-                    alt="Quiz"
-                    className="object-cover object-center rounded-xl w-full h-44"
-                  />
+                {/* question counter */}
+                <div className="text-black text-base sm:text-lg font-bold pt-2 flex-shrink-0">
+                  {currentQuestion}/{totalQuestions}
                 </div>
-              )}
                 
-              {/* options area - flexible center */}
-              <div className="flex-1 flex flex-col items-center justify-start px-2 sm:px-4 w-[70%]">
-                {question?.type === 'ESSAY' ? (
-                  <div className="w-full flex flex-col gap-2">
-                    <textarea
-                      value={textAnswer}
-                      onChange={(e) => setTextAnswer(e.target.value)}
-                      placeholder="Tulis jawaban Anda di sini..."
-                      className="w-full px-3 py-2 border border-amber-700 rounded-lg text-amber-900 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-700 text-sm sm:text-base min-h-24"
+                {/* question text */}
+                <div className="text-black text-xs sm:text-base px-8 pt-8 w-full text-center font-bold flex-shrink-0">
+                  {question?.text}
+                </div>
+
+                {/* image */}
+                {question?.imageUrl && (
+                  <div className="flex-shrink-0 rounded-xl h-auto">
+                    <img
+                      src={question?.imageUrl || "/images/bg-main.webp"}
+                      alt="Quiz"
+                      className="object-cover object-center rounded-xl w-full h-44"
                     />
                   </div>
-                ) : question?.type === 'TRUE_FALSE' ? (
-                  <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
-                    {question?.options?.map((option, index) => (
-                      <div
-                        key={index}
-                        className={`${
-                          selectedOption === option.id ? 'bg-green-600' : 'bg-[#5A3319]'
-                        } text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center`}
-                        onClick={() => setSelectedOption(option.id??"")}
-                      >
-                        {String.fromCharCode(65 + index)}. {option.text}
-                      </div>
-                    ))}
-                  </div>
-                ) : question?.type === 'PUZZLE' ? (
-                  <div className="w-full flex flex-col gap-2">
-                    <p className="text-amber-900 text-sm sm:text-base font-bold text-center">
-                      Susun potongan puzzle dalam urutan yang benar
-                    </p>
+                )}
+                  
+                {/* options area - flexible center */}
+                <div className="flex-1 flex flex-col items-center justify-start px-2 sm:px-4 w-[70%]">
+                  {question?.type === 'ESSAY' ? (
+                    <div className="w-full flex flex-col gap-2">
+                      <textarea
+                        value={textAnswer}
+                        onChange={(e) => setTextAnswer(e.target.value)}
+                        placeholder="Tulis jawaban Anda di sini..."
+                        className="w-full px-3 py-2 border border-amber-700 rounded-lg text-amber-900 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-700 text-sm sm:text-base min-h-24"
+                      />
+                    </div>
+                  ) : question?.type === 'TRUE_FALSE' ? (
                     <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
                       {question?.options?.map((option, index) => (
                         <div
                           key={index}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer?.setData('index', index.toString());
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const draggedIndex = parseInt(e.dataTransfer?.getData('index') || '0');
-                            const newOrder = [...puzzleOrder];
-                            [newOrder[draggedIndex], newOrder[index]] = [newOrder[index], newOrder[draggedIndex]];
-                            setPuzzleOrder(newOrder);
-                          }}
-                          onDragOver={(e) => e.preventDefault()}
-                          className="text-white text-xs sm:text-sm font-bold px-4 py-2 bg-[#5A3319] hover:bg-[#6B4429] min-w-fit sm:min-w-44 w-full rounded cursor-move hover:shadow-lg transition-all"
+                          className={`${
+                            selectedOption === option.id ? 'bg-green-600' : 'bg-[#5A3319]'
+                          } text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-2 sm:py-3 bg-[#5A3319] min-w-fit sm:min-w-44 max-w-xs w-full rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors active:scale-95 text-center`}
+                          onClick={() => {console.log("Selected Option:", option.id); setSelectedOption(option.id??"")}}
                         >
                           {String.fromCharCode(65 + index)}. {option.text}
                         </div>
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
-                    {question?.options?.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedOption(option.id??"")}
-                        className={`text-white text-xs sm:text-sm font-bold px-4 py-1 w-full rounded-sm cursor-pointer transition-all ${
-                          selectedOption === option.id 
-                            ? 'bg-green-600 scale-105' 
-                            : 'bg-[#5A3319] hover:bg-[#6B4429]'
-                        } active:scale-95`}
-                      >
-                        {String.fromCharCode(65 + index)}. {option.text}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  ) : question?.type === 'PUZZLE' ? (
+                    <div className="w-full flex flex-col gap-2">
+                      <p className="text-amber-900 text-sm sm:text-base font-bold text-center">
+                        Susun potongan puzzle dalam urutan yang benar
+                      </p>
+                      <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
+                        {question?.options?.map((option, index) => (
+                          <div
+                            key={index}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer?.setData('index', index.toString());
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const draggedIndex = parseInt(e.dataTransfer?.getData('index') || '0');
+                              const newOrder = [...puzzleOrder];
+                              [newOrder[draggedIndex], newOrder[index]] = [newOrder[index], newOrder[draggedIndex]];
+                              setPuzzleOrder(newOrder);
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            className="text-white text-xs sm:text-sm font-bold px-4 py-2 bg-[#5A3319] hover:bg-[#6B4429] min-w-fit sm:min-w-44 w-full rounded cursor-move hover:shadow-lg transition-all"
+                          >
+                            {String.fromCharCode(65 + index)}. {option.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
+                      {question?.options?.map((option, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {console.log("Selected Option:", option.id); setSelectedOption(option.id??"")}}
+                          className={`text-white text-xs sm:text-sm font-bold px-4 py-1 w-full rounded-sm cursor-pointer transition-all ${
+                            selectedOption === option.id 
+                              ? 'bg-green-600 scale-105' 
+                              : 'bg-[#5A3319] hover:bg-[#6B4429]'
+                          } active:scale-95`}
+                        >
+                          {String.fromCharCode(65 + index)}. {option.text}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
               </div>
-              
-            </div>
-          ) : 
-            <div className="relative w-full flex-1 min-h-64 sm:min-h-80 md:min-h-[420px]">
-              {playerStyles.map((player) => (
-                <div
-                  key={player.id}
-                  className="absolute flex flex-col items-center"
-                  style={{
-                    left: `${player.left}%`,
-                    top: `${player.top}%`,
-                    animation: `float ${player.duration}s ease-in-out ${player.delay}s infinite alternate`,
-                    zIndex: player.zIndex,
-                    transform: "translate(-50%, -50%)",
-                  }}
-                >
-                  {/* Avatar */}
-                  <div className="relative flex items-center justify-center">
-                    <div className="relative w-28">
-                      <img
-                        src={player.avatar}
-                        alt={player.name}
-                        className="w-full h-full object-contain drop-shadow-lg"
-                      />
+            ) : 
+              <div className="relative w-full flex-1 min-h-64 sm:min-h-80 md:min-h-[420px]">
+                {playerStyles.map((player) => (
+                  <div
+                    key={player.id}
+                    className="absolute flex flex-col items-center"
+                    style={{
+                      left: `${player.left}%`,
+                      top: `${player.top}%`,
+                      animation: `float ${player.duration}s ease-in-out ${player.delay}s infinite alternate`,
+                      zIndex: player.zIndex,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    {/* Avatar */}
+                    <div className="relative flex items-center justify-center">
+                      <div className="relative w-28">
+                        <img
+                          src={player.avatar}
+                          alt={player.name}
+                          className="w-full h-full object-contain drop-shadow-lg"
+                        />
 
-                      {/* Name */}
-                      <span
-                        className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
-                        style={{ fontFamily: "Varela Round, serif" }}
-                      >
-                        <div className="text-center text-10 w-44">
-                          {player.name.length > 12
-                            ? player.name.substring(0, 12) + "..."
-                            : player.name}
-                        </div>
-                      </span>
+                        {/* Name */}
+                        <span
+                          className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                          style={{ fontFamily: "Varela Round, serif" }}
+                        >
+                          <div className="text-center text-10 w-44">
+                            {player.name.length > 12
+                              ? player.name.substring(0, 12) + "..."
+                              : player.name}
+                          </div>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            }
+    
+            <style>{`
+              @keyframes float {
+                0% { transform: translate(0, 0); }
+                25% { transform: translate(10px, -14px); }
+                50% { transform: translate(-6px, 6px); }
+                75% { transform: translate(14px, 10px); }
+                100% { transform: translate(-10px, -4px); }
+              }
+            `}</style>
+            
+            {/* Animated particles */}
+            <div className="absolute inset-0 pointer-events-none">
+              {particleStyles.map((style, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-white rounded-full opacity-60 animate-pulse"
+                  style={style}
+                />
               ))}
             </div>
-          }
-  
-          <style>{`
-            @keyframes float {
-              0% { transform: translate(0, 0); }
-              25% { transform: translate(10px, -14px); }
-              50% { transform: translate(-6px, 6px); }
-              75% { transform: translate(14px, 10px); }
-              100% { transform: translate(-10px, -4px); }
-            }
-          `}</style>
-          
-          {/* Animated particles */}
-          <div className="absolute inset-0 pointer-events-none">
-            {particleStyles.map((style, i) => (
-              <div
-                key={i}
-                className="absolute w-2 h-2 bg-white rounded-full opacity-60 animate-pulse"
-                style={style}
-              />
-            ))}
           </div>
-        </div>
+        : 
+          <div className="relative">
+            {/* back */}
+            <div className="fixed w-full flex justify-start top-5 left-5">
+              <button onClick={() => router.push(`/quiziz`)} className="">
+                <Image
+                  src="/back.svg"
+                  alt="Back"
+                  width={80}
+                  height={80}
+                  className="object-cover"
+                  priority
+                />
+              </button>
+            </div>
+            {/* leaderboard */}
+            <div className="flex justify-center items-end">
+              <div className="relative">
+                <Image
+                  src="/leader-2.svg"
+                  alt="Leaderboard"
+                  width={200}
+                  height={200}
+                  className="object-contain"
+                  priority
+                />
+                <div className="absolute top-7 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <h1 className="text-[10px] font-bold text-gray-800">
+                    {leaderboard.length > 1 ? leaderboard[1].name.length > 10 ? leaderboard[1].name.substring(0, 10) + '...' : leaderboard[1].name : 'N/A'}
+                  </h1>
+                </div>
+                <div className="absolute top-14 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <Image
+                    src="/character/ava-1.svg"
+                    alt="Leaderboard"
+                    width={90}
+                    height={90}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </div>
+              <div className="relative">
+                <Image
+                  src="/leader-1.svg"
+                  alt="Leaderboard"
+                  width={250}
+                  height={250}
+                  className="object-contain"
+                  priority
+                />
+                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <h1 className="text-[10px] font-bold text-gray-800">
+                    {leaderboard.length > 0 ? leaderboard[0].name.length > 10 ? leaderboard[0].name.substring(0, 10) + '...' : leaderboard[0].name : 'N/A'}
+                  </h1>
+                </div>
+                <div className="absolute top-26 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <Image
+                    src="/character/ava-1.svg"
+                    alt="Leaderboard"
+                    width={120}
+                    height={120}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </div>
+              <div className="relative">
+                <Image
+                  src="/leader-3.svg"
+                  alt="Leaderboard"
+                  width={200}
+                  height={200}
+                  className="object-contain"
+                  priority
+                />
+                <div className="absolute top-7 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <h1 className="text-[10px] font-bold text-gray-800">
+                    {leaderboard.length > 2 ? leaderboard[2].name.length > 10 ? leaderboard[1].name.substring(0, 10) + '...' : leaderboard[1].name : 'N/A'}
+                  </h1>
+                </div>
+                <div className="absolute top-14 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <Image
+                    src="/character/ava-1.svg"
+                    alt="Leaderboard"
+                    width={90}
+                    height={90}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
+    
+            <div 
+              className="max-w-3xl mx-auto mt-2 bg-white/90 backdrop-blur-sm rounded-2xl  border-4 border-amber-500"
+              style={{
+                backgroundImage: 'url(/images/bg-card-list.webp)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                fontFamily: 'Varela Round',
+              }}
+            >
+              <div className="max-h-[380px] overflow-y-auto rounded-lg">
+                <table className="border-separate w-full mb-1 px-0.5 text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="text-white border-b-2 border-gray-300 bg-amber-800">
+                      <th className="text-left py-2 px-4 rounded-tl-lg w-12">
+                        Rank
+                      </th>
+    
+                      <th className="text-left py-2 px-4">
+                        Name
+                      </th>
+    
+                      <th className="text-right py-2 px-4 rounded-tr-lg">
+                        Score
+                      </th>
+                    </tr>
+                  </thead>
+    
+                  <tbody className="text-gray-700">
+                    {leaderboard?.map((participant, i) => (
+                      <tr
+                        key={participant.id}
+                        className={`
+                          hover:bg-gray-100
+                          ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                          border-b border-gray-200
+                        `}
+                      >
+                        <td className="py-2 px-4 font-bold">
+                          {participant.rank}
+                        </td>
+    
+                        <td className="py-2 px-4">
+                          {participant.name}
+                        </td>
+    
+                        <td className="py-2 px-4 text-right font-bold">
+                          {participant.score}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        }
       </div>
     </main>
   );

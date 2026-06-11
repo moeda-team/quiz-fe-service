@@ -74,7 +74,7 @@ export default function CodePage() {
         socket.on('participant:joined_success', (data) => {
           console.log('Participant joined successfully:', data);
           setCookie(`quiz_session_${data.sessionId}`, data.sessionId, 1);
-          setCookie(`quiz_participantId_${data.participantId}`, data.participantId, 1);
+          setCookie(`quiz_participantId`, data.participantId, 1);
           setCookie(`quiz_joincode`, data.joinCode, 1);
           router.push(`/quiziz/${data.sessionId}`);
         });
