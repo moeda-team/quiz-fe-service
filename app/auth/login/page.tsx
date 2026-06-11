@@ -184,20 +184,36 @@ function LoginPageInner() {
                         </FormItem>
                       )}
                     />
-
-                    <Button
-                      type="submit"
-                      className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 sm:h-11 md:h-12 lg:h-14 xl:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
-                      disabled={isSubmitting}
-                    >
-                      <Image
-                        src="/images/login/btn-login.webp"
-                        alt="Login Button"
-                        fill
-                        className="object-contain"
-                      />
-                      <span className="relative z-10">Masuk</span>
-                    </Button>
+                    
+                    <div className="flex flex-col ">
+                      <Button
+                        type="submit"
+                        className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 sm:h-11 md:h-12 lg:h-14 xl:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
+                        disabled={isSubmitting}
+                      >
+                        <Image
+                          src="/images/login/btn-login.webp"
+                          alt="Login Button"
+                          fill
+                          className="object-contain"
+                        />
+                        <span className="relative z-10">Masuk</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 sm:h-11 md:h-12 lg:h-14 xl:h-16 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
+                        disabled={isSubmitting}
+                        onClick={()=>router.push('/quiziz')}
+                      >
+                        <Image
+                          src="/images/login/btn-login.webp"
+                          alt="Login Button"
+                          fill
+                          className="object-contain"
+                        />
+                        <span className="relative z-10">Masukan Kode</span>
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </div>
