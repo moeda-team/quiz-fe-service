@@ -43,6 +43,7 @@ interface LeaderboardPayload {
 export default function CodePage() {
   const params = useParams();
   const sessionId = params.id;
+  const router = useRouter()
   const { socket } = useSocket();
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -360,6 +361,7 @@ export default function CodePage() {
 
         {!isleaderboard ? 
           <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-2">
+            
             {/* Players Area */}
             {isStart ? (
               <div 
@@ -537,6 +539,19 @@ export default function CodePage() {
           </div>
         : 
           <div className="relative">
+            {/* back */}
+            <div className="fixed w-full flex justify-start top-5 left-5">
+              <button onClick={() => router.push(`/quiziz`)} className="">
+                <Image
+                  src="/back.svg"
+                  alt="Back"
+                  width={80}
+                  height={80}
+                  className="object-cover"
+                  priority
+                />
+              </button>
+            </div>
             {/* leaderboard */}
             <div className="flex justify-center items-end">
               <div className="relative">
