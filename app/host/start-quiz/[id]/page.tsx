@@ -519,7 +519,7 @@ export default function WaitingRoomPage() {
       </div>
 
       {/* Header */}
-      <GlobalMusicPlayer />
+      <GlobalMusicPlayer autoPlay/>
 
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center min-h-[calc(100vh-80px)] sm:min-h-[calc(100vh-120px)] px-3 sm:px-4 pt-4 sm:pt-6">
