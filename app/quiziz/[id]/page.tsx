@@ -333,23 +333,23 @@ export default function CodePage() {
   }, [socket]);
 
   return (
-    <main className="mx-auto w-full">
+    <main className="min-h-screen w-full">
       <div 
-        className="mx-auto w-full bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
+        className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
         style={{
           backgroundImage: 'url(/bg-mobile.svg)',
           backgroundSize: 'cover',
-          backgroundPosition: 'top',
+          backgroundPosition: 'center',
           fontFamily: 'Varela Round',
         }}
       >
-        <div className="flex items-start justify-center rounded-4xl relative overflow-hidden">
+        <div className="flex items-start justify-center rounded-2xl sm:rounded-4xl relative overflow-hidden">
           <Image 
             src="/logo-mobile.svg" 
             alt="Logo" 
             width={140} 
             height={140}
-            className="w-44"
+            className="w-32 sm:w-36 md:w-44"
           />
         </div>
 
@@ -376,7 +376,7 @@ export default function CodePage() {
               >
                 {/* timer */}
                 <div className="absolute w-full">
-                  <div className="text-red-600 w-22 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
+                  <div className="text-red-600 lg:w-22 lg:h-24 lg:ml-0 w-28 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
                     <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
                   </div>
                 </div>
@@ -387,7 +387,7 @@ export default function CodePage() {
                 </div>
                 
                 {/* question text */}
-                <div className="text-black text-xs sm:text-base px-8 pt-8 w-full text-center font-bold flex-shrink-0">
+                <div className="text-black text-xs sm:text-base px-14 pt-8 w-full text-center font-bold flex-shrink-0">
                   {question?.text}
                 </div>
 
@@ -491,7 +491,7 @@ export default function CodePage() {
                   >
                     {/* Avatar */}
                     <div className="relative flex items-center justify-center">
-                      <div className="relative w-28">
+                      <div className="relative w-20">
                         <img
                           src={player.avatar}
                           alt={player.name}
@@ -500,10 +500,10 @@ export default function CodePage() {
 
                         {/* Name */}
                         <span
-                          className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                          className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 px-1 sm:px-2 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-700"
                           style={{ fontFamily: "Varela Round, serif" }}
                         >
-                          <div className="text-center text-10 w-44">
+                          <div className="text-center w-16 sm:w-20 md:w-28 lg:w-44">
                             {player.name.length > 12
                               ? player.name.substring(0, 12) + "..."
                               : player.name}
@@ -540,18 +540,20 @@ export default function CodePage() {
         : 
           <div className="relative">
             {/* back */}
-            <div className="fixed w-full flex justify-start top-5 left-5">
+            <div className="fixed w-full flex justify-start top-2 left-2 sm:top-5 sm:left-5">
               <button onClick={() => router.push(`/quiziz`)} className="">
                 <Image
                   src="/back.svg"
                   alt="Back"
-                  width={80}
-                  height={80}
-                  className="object-cover"
+                  width={60}
+                  height={60}
+                  className="sm:h-14 md:w-20 md:h-20 object-cover"
                   priority
                 />
               </button>
             </div>
+            
+            
             {/* leaderboard */}
             <div className="flex justify-center items-end">
               <div className="relative">
@@ -632,7 +634,7 @@ export default function CodePage() {
             </div>
     
             <div 
-              className="max-w-3xl mx-auto mt-2 bg-white/90 backdrop-blur-sm rounded-2xl  border-4 border-amber-500"
+              className="max-w-3xl mx-auto mt-2 bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 sm:border-4 border-amber-500"
               style={{
                 backgroundImage: 'url(/images/bg-card-list.webp)',
                 backgroundSize: 'cover',
@@ -640,19 +642,19 @@ export default function CodePage() {
                 fontFamily: 'Varela Round',
               }}
             >
-              <div className="max-h-[380px] overflow-y-auto rounded-lg">
-                <table className="border-separate w-full mb-1 px-0.5 text-sm">
+              <div className="max-h-[240px] sm:max-h-[300px] md:max-h-[380px] overflow-y-auto rounded-lg">
+                <table className="border-separate w-full mb-1 px-0.5 text-xs sm:text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="text-white border-b-2 border-gray-300 bg-amber-800">
-                      <th className="text-left py-2 px-4 rounded-tl-lg w-12">
+                      <th className="text-left py-1.5 sm:py-2 px-2 sm:px-4 rounded-tl-lg w-10 sm:w-12">
                         Rank
                       </th>
     
-                      <th className="text-left py-2 px-4">
+                      <th className="text-left py-1.5 sm:py-2 px-2 sm:px-4">
                         Name
                       </th>
     
-                      <th className="text-right py-2 px-4 rounded-tr-lg">
+                      <th className="text-right py-1.5 sm:py-2 px-2 sm:px-4 rounded-tr-lg">
                         Score
                       </th>
                     </tr>
@@ -668,15 +670,15 @@ export default function CodePage() {
                           border-b border-gray-200
                         `}
                       >
-                        <td className="py-2 px-4 font-bold">
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 font-bold">
                           {participant.rank}
                         </td>
     
-                        <td className="py-2 px-4">
+                        <td className="py-1 sm:py-2 px-2 sm:px-4">
                           {participant.name}
                         </td>
     
-                        <td className="py-2 px-4 text-right font-bold">
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-right font-bold">
                           {participant.score}
                         </td>
                       </tr>

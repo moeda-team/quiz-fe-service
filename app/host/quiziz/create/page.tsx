@@ -172,7 +172,7 @@ export default function CreateQuizPage() {
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}
-        <header className="mb-4 md:mb-6 shrink-0">
+        <header className="shrink-0">
           <div className="text-center">
             <div
               className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
@@ -200,11 +200,11 @@ export default function CreateQuizPage() {
               <Form {...form}>
                 <form 
                   onSubmit={form.handleSubmit(onSubmit)} 
-                  className="flex-1 space-y-4 flex flex-col min-h-0"
+                  className="flex-1 space-y-2 flex flex-col min-h-0"
                 >
                   {/* Section Header */}
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-4">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 shrink-0">
+                    <div className="flex items-center justify-center gap-2 md:gap-4">
                       <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
                       <div className="text-2xl md:text-3xl text-black tracking-tight">
                         Pilih Tema Kuis
@@ -214,13 +214,12 @@ export default function CreateQuizPage() {
                   </div>
 
                   {/* Form Content Scroll Area */}
-                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-4">
+                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 space-y-2">
                     {/* Theme Selection Section */}
                     <div className="space-y-4">
-                      <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
-                      <div className="flex gap-6">
+                      <div className="gap-6 grid grid-cols-4">
                         {/* Theme List */}
-                        <div className="overflow-x-auto flex-1">
+                        <div className="overflow-x-auto flex-1 col-span-4 lg:col-span-3 xs:col-span-2 md:col-span-2">
                           <div className="flex gap-4 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
@@ -270,7 +269,7 @@ export default function CreateQuizPage() {
                         {/* Upload Own Theme - Fixed beside theme list */}
                         <div
                           onClick={() => coverImageInputRef.current?.click()}
-                          className={`aspect-video rounded-xl border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                          className={`aspect-video rounded-xl col-span-4 lg:col-span-1 w-full h-26 lg:w-48 border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group flex-shrink-0 ${
                             selectedTheme === "custom" ? "border-[#C9750A] bg-[#efebe9]" : ""
                           }`}
                         >
@@ -303,7 +302,9 @@ export default function CreateQuizPage() {
                                 {isUploading ? (
                                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                  <Upload size={20} />
+                                  <svg className="w-8 h-8 text-[#C9750A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
                                 )}
                               </div>
                               <span className="text-[10px] md:text-xs font-bold text-[#5d4037] text-center px-2">
@@ -316,8 +317,8 @@ export default function CreateQuizPage() {
                     </div>
 
                     {/* Quiz Details Section */}
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <FormField
                           control={form.control}
                           name="title"
@@ -366,7 +367,7 @@ export default function CreateQuizPage() {
                                   {isUploading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <Upload size={20} color="#5d4037" />
+                                    <Upload size={20} color="#C9750A" />
                                   )}
                                 </div>
                                 <button
@@ -416,7 +417,7 @@ export default function CreateQuizPage() {
                       <Button
                         type="submit"
                         disabled={isMutating}
-                        className="bg-[#6d4c41] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
+                        className="bg-[#C9750A] hover:bg-[#5d4037] text-white px-8 py-6 rounded-xl text-lg font-bold flex items-center gap-3 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                       >
                         {isMutating ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

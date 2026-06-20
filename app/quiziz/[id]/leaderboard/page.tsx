@@ -72,17 +72,17 @@ export default function LeaderboardPage() {
         <img
           src="/bg-leaderboard.svg"
           alt="Background"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-black/30"></div>
       </div>
       
       <GlobalMusicPlayer />
 
-      <div className="relative w-full flex justify-end p-4">
+      <div className="relative w-full flex justify-end p-2 sm:p-4">
         <button 
           onClick={() => {
-            router.push(`/host/start-quiz/${params.id}/history`);
+            router.push(`/quiziz`);
             document.cookie.split(";").forEach((cookie) => {
               const cookieName = cookie.split("=")[0].trim();
 
@@ -95,38 +95,38 @@ export default function LeaderboardPage() {
           <Image
             src="/end.svg"
             alt="End"
-            width={150}
-            height={150}
-            className="object-cover"
+            width={80}
+            height={80}
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-[150px] md:h-[150px] object-cover"
             priority
           />
         </button>
       </div>
       
-      <div className="relative z-10 ">
+      <div className="relative z-10 px-2 sm:px-4">
         {/* leaderboard */}
-        <div className="flex justify-center items-end">
+        <div className="flex justify-center items-end gap-1 sm:gap-2">
           <div className="relative">
             <Image
               src="/leader-2.svg"
               alt="Leaderboard"
-              width={200}
-              height={200}
-              className="object-contain"
+              width={120}
+              height={120}
+              className="w-20 h-20 sm:w-28 sm:h-28 md:w-[200px] md:h-[200px] object-contain"
               priority
             />
-            <div className="absolute top-13 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <h1 className="text-lg font-bold text-gray-800">
+            <div className="absolute top-5 sm:top-7 md:top-13 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <h1 className="text-[8px] sm:text-[10px] md:text-lg font-bold text-gray-800">
                 {leaderboardData.leaderboard.length > 1 ? leaderboardData.leaderboard[1].name.length > 10 ? leaderboardData.leaderboard[1].name.substring(0, 10) + '...' : leaderboardData.leaderboard[1].name : 'N/A'}
               </h1>
             </div>
-            <div className="absolute top-26 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute top-10 sm:top-16 md:top-26 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Image
                 src="/character/ava-1.svg"
                 alt="Leaderboard"
-                width={90}
-                height={90}
-                className="object-contain"
+                width={50}
+                height={50}
+                className="w-10 h-10 sm:w-14 sm:h-14 md:w-[90px] md:h-[90px] object-contain"
                 priority
               />
             </div>
@@ -135,23 +135,23 @@ export default function LeaderboardPage() {
             <Image
               src="/leader-1.svg"
               alt="Leaderboard"
-              width={250}
-              height={250}
-              className="object-contain"
+              width={150}
+              height={150}
+              className="w-24 h-24 sm:w-36 sm:h-36 md:w-[250px] md:h-[250px] object-contain"
               priority
             />
-            <div className="absolute top-18 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <h1 className="text-lg font-bold text-gray-800">
+            <div className="absolute top-8 sm:top-12 md:top-18 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <h1 className="text-[8px] sm:text-[10px] md:text-lg font-bold text-gray-800">
                 {leaderboardData.leaderboard.length > 0 ? leaderboardData.leaderboard[0].name.length > 10 ? leaderboardData.leaderboard[0].name.substring(0, 10) + '...' : leaderboardData.leaderboard[0].name : 'N/A'}
               </h1>
             </div>
-            <div className="absolute top-36 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute top-16 sm:top-24 md:top-36 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Image
                 src="/character/ava-1.svg"
                 alt="Leaderboard"
-                width={120}
-                height={120}
-                className="object-contain"
+                width={70}
+                height={70}
+                className="w-12 h-12 sm:w-18 sm:h-18 md:w-[120px] md:h-[120px] object-contain"
                 priority
               />
             </div>
@@ -160,23 +160,23 @@ export default function LeaderboardPage() {
             <Image
               src="/leader-3.svg"
               alt="Leaderboard"
-              width={200}
-              height={200}
-              className="object-contain"
+              width={120}
+              height={120}
+              className="w-20 h-20 sm:w-28 sm:h-28 md:w-[200px] md:h-[200px] object-contain"
               priority
             />
-            <div className="absolute top-13 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <h1 className="text-lg font-bold text-gray-800">
+            <div className="absolute top-5 sm:top-7 md:top-13 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <h1 className="text-[8px] sm:text-[10px] md:text-lg font-bold text-gray-800">
                 {leaderboardData.leaderboard.length > 2 ? leaderboardData.leaderboard[2].name.length > 10 ? leaderboardData.leaderboard[1].name.substring(0, 10) + '...' : leaderboardData.leaderboard[1].name : 'N/A'}
               </h1>
             </div>
-            <div className="absolute top-26 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute top-10 sm:top-16 md:top-26 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Image
                 src="/character/ava-1.svg"
                 alt="Leaderboard"
-                width={90}
-                height={90}
-                className="object-contain"
+                width={50}
+                height={50}
+                className="w-10 h-10 sm:w-14 sm:h-14 md:w-[90px] md:h-[90px] object-contain"
                 priority
               />
             </div>
@@ -184,7 +184,7 @@ export default function LeaderboardPage() {
         </div>
 
         <div 
-          className="max-w-3xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl  border-4 border-amber-500"
+          className="max-w-3xl mx-auto bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 sm:border-4 border-amber-500 mt-2 sm:mt-4"
           style={{
             backgroundImage: 'url(/images/bg-card-list.webp)',
             backgroundSize: 'cover',
@@ -192,19 +192,19 @@ export default function LeaderboardPage() {
             fontFamily: 'Varela Round',
           }}
         >
-          <div className="max-h-[380px] overflow-y-auto rounded-lg">
-            <table className="border-separate w-full mb-1 px-0.5">
+          <div className="max-h-[240px] sm:max-h-[300px] md:max-h-[380px] overflow-y-auto rounded-lg">
+            <table className="border-separate w-full mb-1 px-0.5 text-xs sm:text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="text-white border-b-2 border-gray-300 bg-amber-800">
-                  <th className="text-left py-2 px-4 rounded-tl-lg w-12">
+                  <th className="text-left py-1.5 sm:py-2 px-2 sm:px-4 rounded-tl-lg w-10 sm:w-12">
                     Rank
                   </th>
 
-                  <th className="text-left py-2 px-4">
+                  <th className="text-left py-1.5 sm:py-2 px-2 sm:px-4">
                     Name
                   </th>
 
-                  <th className="text-right py-2 px-4 rounded-tr-lg">
+                  <th className="text-right py-1.5 sm:py-2 px-2 sm:px-4 rounded-tr-lg">
                     Score
                   </th>
                 </tr>
@@ -220,15 +220,15 @@ export default function LeaderboardPage() {
                       border-b border-gray-200
                     `}
                   >
-                    <td className="py-2 px-4 font-bold">
+                    <td className="py-1 sm:py-2 px-2 sm:px-4 font-bold">
                       {participant.rank}
                     </td>
 
-                    <td className="py-2 px-4">
+                    <td className="py-1 sm:py-2 px-2 sm:px-4">
                       {participant.name}
                     </td>
 
-                    <td className="py-2 px-4 text-right font-bold">
+                    <td className="py-1 sm:py-2 px-2 sm:px-4 text-right font-bold">
                       {participant.score}
                     </td>
                   </tr>

@@ -96,12 +96,13 @@ function LoginPageInner() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/20 sm:to-amber-900/30 md:to-amber-900/40"></div>
       </div>
+
       <div className="relative z-0 min-h-screen flex items-center justify-center px-2 sm:px-4 md:px-6 lg:px-8 xl:px-12">
-        <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl flex items-center justify-center gap-4 sm:gap-6 md:gap-8">
+        <div className="w-full lg:max-w-5xl xl:max-w-6xl flex items-center justify-center gap-4 sm:gap-6 md:gap-8">
           {/* Center - Login Card */}
           <div className="relative w-full">
             {/* Card Background */}
-            <div className="relative w-full max-w-[280px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-2xl mx-auto h-auto">
+            <div className="relative w-full sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-2xl mx-auto h-auto">
               <Image
                 src="/images/login/card-login.webp"
                 alt="Login Card"
@@ -111,9 +112,9 @@ function LoginPageInner() {
               />
 
               {/* Form Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
+              <div className="absolute inset-0 flex flex-col items-center justify-center lg:p-4 p-8">
                 {/* Title */}
-                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                <div className="text-center my-6">
                   <h2 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-bold text-amber-900 mb-1 sm:mb-2 leading-tight" style={{ fontFamily: 'serif' }}>
                     Selamat Datang di Empat Rima
                   </h2>

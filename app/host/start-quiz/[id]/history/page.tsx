@@ -102,7 +102,7 @@ export default function HistoryPage() {
         <GlobalMusicPlayer />
 
         {/* back */}
-        <div className="relative w-full flex justify-start p-4">
+        <div className="relative w-full flex justify-start p-2 sm:p-4">
           <button onClick={() => router.push(`/host/start-quiz`)} className="">
             <Image
               src="/back.svg"
@@ -116,10 +116,10 @@ export default function HistoryPage() {
         </div>
 
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-4 md:gap-6 flex-1 min-h-0">
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0 mx-20">
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0 mx-2 sm:mx-4 md:mx-10 lg:mx-20">
             {/* Main Card List */}
             <div
-              className="flex-1 rounded-4xl p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0 h-[calc(100vh-100px)]"
+              className="flex-1 rounded-2xl sm:rounded-4xl p-2 sm:p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-0 auto lg:h-[calc(100vh-100px)]"
               style={{
                   backgroundImage: 'url(/images/bg-card-list.webp)',
                   backgroundSize: 'cover',
@@ -127,18 +127,18 @@ export default function HistoryPage() {
                   fontFamily: 'Varela Round',
                 }}
               >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <div className=" rounded-2xl flex flex-col gap-4 col-span-2 min-h-[calc(100vh-140px)]">
-                  <div className="w-full h-56 rounded-lg relative">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className=" rounded-2xl flex flex-col gap-2 sm:gap-4 col-span-1 lg:col-span-2">
+                  <div className="w-full h-36 sm:h-44 md:h-56 rounded-lg relative">
                     <img
                       src={quizdata?.coverImage || "/images/bg-main.webp"}
                       alt="Quiz 1"
-                      className="object-cover rounded-lg h-56 w-full"
+                      className="object-cover rounded-lg h-36 sm:h-44 md:h-56 w-full"
                     />
                     <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
-                    <div className="absolute bottom-0 left-0 right-0 text-white bg-black/50 rounded-b-lg p-2">
-                      <h3 className="text-xl font-bold">{quizdata?.title}</h3>
-                      <p className="text-sm">{quizdata?.instructions}</p>
+                    <div className="absolute bottom-0 left-0 right-0 text-white bg-black/50 rounded-b-lg p-2 sm:p-3">
+                      <h3 className="text-sm sm:text-lg md:text-xl font-bold">{quizdata?.title}</h3>
+                      <p className="text-xs sm:text-sm hidden sm:block">{quizdata?.instructions}</p>
                       <button 
                         className="absolute bottom-2 right-2 hover:scale-105 transition-transform hover:bg-transparent w-28 h-10 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
                         onClick={() => {
@@ -155,16 +155,16 @@ export default function HistoryPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="w-full h-96 overflow-auto bg-[#291B13] rounded-lg text-white">
+                  <div className="w-full h-64 sm:h-80 md:h-96 overflow-auto bg-[#291B13] rounded-lg text-white">
                     <Table className="border-white">
                       <TableHeader>
                         <TableRow className="border-white hover:bg-transparent">
-                          <TableHead className="text-white px-2 text-center w-12">No.</TableHead>
-                          <TableHead className="text-white px-2 text-center">Tanggal Kuis</TableHead>
-                          <TableHead className="text-white px-2 text-center">Peserta</TableHead>
-                          <TableHead className="text-white px-2 text-center">Join Code</TableHead>
-                          <TableHead className="text-white px-2 text-center">Status</TableHead>
-                          <TableHead className="text-white px-2 text-center w-24">#</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm w-10">No.</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">Tanggal</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">Peserta</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden sm:table-cell">Join Code</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden md:table-cell">Status</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm w-16 sm:w-24">#</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="border-white max-h-96 overflow-y-auto">
@@ -177,11 +177,11 @@ export default function HistoryPage() {
                         ) : (
                         history.map((item, index) => (
                           <TableRow key={item.id} className="border-white hover:bg-transparent">
-                            <TableCell className="px-2 text-center">{index + 1}</TableCell>
-                            <TableCell className="px-2 text-center">{formatDate(item.startedAt, 'dd MMM yyyy HH:mm')}</TableCell>
-                            <TableCell className="px-2 text-center">{item.participantCount}</TableCell>
-                            <TableCell className="px-2 text-center">{item.joinCode}</TableCell>
-                            <TableCell className="px-2 text-center">{item.status}</TableCell>
+                            <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">{index + 1}</TableCell>
+                            <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">{formatDate(item.startedAt, 'dd MMM yyyy HH:mm')}</TableCell>
+                            <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">{item.participantCount}</TableCell>
+                            <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden sm:table-cell">{item.joinCode}</TableCell>
+                            <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden md:table-cell">{item.status}</TableCell>
                             <TableCell className="px-2 text-center">
                               <button
                                 className="bg-[#F2C94C] text-black px-2 py-1 rounded hover:bg-[#e6b82a] transition-colors"
@@ -200,7 +200,7 @@ export default function HistoryPage() {
                     </Table>
                   </div>
                 </div>
-                <div className="bg-[#291B13] rounded-2xl p-4 shadow-lg text-white">
+                <div className="bg-[#291B13] rounded-2xl p-2 sm:p-4 shadow-lg text-white">
                   <div className="text-center text-lg font-bold mb-2">
                     Overview {historyDetail && historyDetail?.session?.startedAt && formatDate(historyDetail?.session?.startedAt, 'dd MMM yyyy')}
                   </div>

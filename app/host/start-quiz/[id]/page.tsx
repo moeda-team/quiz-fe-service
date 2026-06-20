@@ -492,6 +492,13 @@ export default function WaitingRoomPage() {
           >
             Waiting Room Tidak Ditemukan
           </h2>
+          <button
+            onClick={() => router.push('/host/start-quiz')}
+            className="mt-4 px-6 py-2 bg-white text-amber-900 rounded-full font-bold hover:bg-amber-100 transition-colors"
+            style={{ fontFamily: 'Varela Round, serif' }}
+          >
+            Kembali
+          </button>
         </div>
       </div>
     );
@@ -515,10 +522,10 @@ export default function WaitingRoomPage() {
       <GlobalMusicPlayer />
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center min-h-[calc(100vh-120px)] px-4 pt-6">
+      <div className="relative z-10 flex flex-col items-center min-h-[calc(100vh-80px)] sm:min-h-[calc(100vh-120px)] px-3 sm:px-4 pt-4 sm:pt-6">
         {/* Title */}
         <h1 
-          className="text-2xl md:text-3xl text-white drop-shadow-[0_3px_3px_rgba(0,0,0,0.4)] tracking-wider uppercase text-center mb-4"
+          className="text-lg sm:text-2xl md:text-3xl text-white drop-shadow-[0_3px_3px_rgba(0,0,0,0.4)] tracking-wider uppercase text-center mb-2 sm:mb-4"
           style={{ fontFamily: 'Varela Round, serif' }}
         >
           Menunggu Pemain
@@ -535,7 +542,7 @@ export default function WaitingRoomPage() {
             fill
             className="object-contain"
           />
-          <span className="relative z-10 text-amber-900 mb-2" style={{ fontFamily: 'Varela Round, serif' }}>Kode : {roomData.roomCode}</span>
+          <span className="relative z-10 text-amber-900 mb-2" style={{ fontFamily: 'Varela Round, serif' }}>{roomData.roomCode}</span>
         </div>
 
         {/* Wooden Start Button */}
@@ -564,7 +571,7 @@ export default function WaitingRoomPage() {
         </Button>
 
         {/* Players Area */}
-        <div className="relative w-full flex-1 min-h-[360px] md:min-h-[420px]">
+        <div className="relative w-full flex-1 min-h-[240px] sm:min-h-[300px] md:min-h-[360px] lg:min-h-[420px]">
           {playerStyles.map((player) => (
             <div
               key={player.id}
@@ -588,10 +595,10 @@ export default function WaitingRoomPage() {
 
                   {/* Name */}
                   <span
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                    className="absolute bottom-1 sm:bottom-2 md:bottom-3 left-1/2 -translate-x-1/2 px-1 sm:px-2 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-700"
                     style={{ fontFamily: "Varela Round, serif" }}
                   >
-                    <div className="text-center text-10 w-44">
+                    <div className="text-center w-16 sm:w-24 md:w-32 lg:w-44">
                       {player.name.length > 12
                         ? player.name.substring(0, 12) + "..."
                         : player.name}

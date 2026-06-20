@@ -52,7 +52,7 @@ export default function DashboardAdminPage() {
   }, [searchQuery]);
 
   return (
-    <div className="h-screen relative overflow-hidden flex flex-col">
+    <div className="min-h-screen lg:h-screen relative overflow-y-auto lg:overflow-hidden flex flex-col">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -120,7 +120,7 @@ export default function DashboardAdminPage() {
               }}
             >
               {/* Section Header with Search */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-4 shrink-0 mb-2">
                 <div className="flex items-center gap-2 md:gap-4">
                   <img src="/images/icon-title-l.svg" alt="icon" className="w-8 h-8 md:w-12 md:h-12 animate-bounce" />
                   <div className="text-xl md:text-1xl text-amber-950 tracking-tight">
@@ -158,11 +158,11 @@ export default function DashboardAdminPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6 pb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 pb-4">
                       {quizzes.map((quiz, index) => (
                         <div
                           key={`${quiz.id}-${index}`}
-                          className="group bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
+                          className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
                           onClick={() => {
                             router.push(`/host/start-quiz/${quiz.id}/history`)
                             localStorage.setItem('detail', JSON.stringify(quiz))
@@ -177,12 +177,12 @@ export default function DashboardAdminPage() {
                             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                           </div>
-                          <div className="p-4 flex flex-col flex-1 bg-amber-50/30">
-                            <h3 className="font-bold text-black mb-2 text-sm md:text-base line-clamp-2 leading-snug">
+                          <div className="p-2 sm:p-3 md:p-4 flex flex-col flex-1 bg-amber-50/30">
+                            <h3 className="font-bold text-black mb-1 sm:mb-2 text-xs sm:text-sm md:text-base line-clamp-2 leading-snug">
                               {quiz.title}
                             </h3>
                             <div className="mt-auto">
-                              <p className="text-[10px] md:text-xs text-black/80 mt-1">
+                              <p className="text-[9px] sm:text-[10px] md:text-xs text-black/80 mt-1">
                                 By {quiz.author || "Anonim"}
                               </p>
                             </div>
