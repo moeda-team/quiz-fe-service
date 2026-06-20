@@ -39,8 +39,10 @@ function LoginPageInner() {
 
   const form = useForm<LoginFormData>({
     defaultValues: {
-      email: "admin@quizapp.com",
-      password: "admin123",
+      // email: "admin@quizapp.com",
+      // password: "admin123",
+      email: "",
+      password: "",
       rememberMe: false,
     },
   });
@@ -149,6 +151,7 @@ function LoginPageInner() {
                           <FormControl>
                             <Input
                               {...field}
+                              placeholder="Email ..."
                               type="email"
                               className="bg-transparent border border-[#C9750A] rounded-lg px-2 py-2 sm:px-3 sm:py-2 md:px-3 md:py-3 text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10 lg:h-11"
                               autoComplete="email"
@@ -168,6 +171,7 @@ function LoginPageInner() {
                             <div className="relative">
                               <Input
                                 {...field}
+                                placeholder="Password ..."
                                 type={showPassword ? "text" : "password"}
                                 className="bg-transparent border border-amber-700 rounded-lg px-2 py-2 sm:px-3 sm:py-2 md:px-3 md:py-3 pr-8 sm:pr-10 text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10 lg:h-11"
                                 autoComplete="current-password"
