@@ -3,7 +3,12 @@
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useRef, useEffect } from 'react';
 
-export default function GlobalMusicPlayer() {
+interface GlobalMusicPlayerProps {
+  volume?: number;
+  autoPlay?: boolean;
+}
+
+export default function GlobalMusicPlayer({ volume = 0.2, autoPlay = false }: GlobalMusicPlayerProps) {
   const {
     currentMusicUrl,
     isPlaying,
@@ -13,6 +18,38 @@ export default function GlobalMusicPlayer() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Clamp volume between 0 and 1 and apply to audio element
+  const clampedVolume = Math.min(1, Math.max(0, volume));
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
+  }, [clampedVolume]);
+
+  // Attempt autoplay on mount
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    if (!currentMusicUrl || currentMusicUrl === "") {
+      setQuizMusic("/media/default.mp3");
+    }
+
+    if (!isPlaying) {
+      togglePlayPause();
+    }
+
+    // Retry after a short delay in case the browser blocks immediate autoplay
+    const timer = setTimeout(() => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {
+          // Autoplay blocked; user can still click the speaker button
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [autoPlay, currentMusicUrl, isPlaying, setQuizMusic, togglePlayPause]);
 
   // Handle audio loading and playback
   useEffect(() => {
