@@ -833,7 +833,7 @@ export default function EditQuizPage() {
   }
 
   return (
-    <div className="h-screen relative overflow-hidden flex flex-col">
+    <div className="min-h-screen lg:h-screen relative overflow-y-auto lg:overflow-hidden flex flex-col">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img
@@ -846,7 +846,7 @@ export default function EditQuizPage() {
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}
-        <header className="mb-4 md:mb-6 shrink-0">
+        <header className="shrink-0">
           <div className="text-center">
             <div
               className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-black drop-shadow-xl tracking-wider text-shadow-lg text-shadow-amber-400 uppercase"
@@ -856,7 +856,6 @@ export default function EditQuizPage() {
             </div>
           </div>
         </header>
-
 
         {/* Content Section */}
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 flex-1 min-h-0 py-4">
@@ -875,10 +874,10 @@ export default function EditQuizPage() {
               {/* form edit */}
               {currentMode === 'edit' ? (
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col p-4 md:p-6 min-h-0">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2 flex flex-col min-h-0 p-6">
                   {/* Section Header */}
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-2">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 shrink-0">
+                    <div className="flex items-center justify-center gap-2 md:gap-4">
                       <img src="/images/icon-title-l.svg" alt="icon" width={32} height={32} className="animate-bounce" />
                       <div className="text-2xl md:text-3xl text-black tracking-tight">
                         EDIT KUIS
@@ -892,9 +891,9 @@ export default function EditQuizPage() {
                     {/* Theme Selection Section */}
                     <div className="space-y-4">
                       <h2 className="text-xl md:text-2xl font-bold text-[#5d4037]">Pilih Tema Kuis</h2>
-                      <div className="flex gap-6">
+                      <div className="gap-6 grid grid-cols-4">
                         {/* Theme List */}
-                        <div className="overflow-x-auto pb-4 flex-1">
+                        <div className="overflow-x-auto flex-1 col-span-4 lg:col-span-3 xs:col-span-2 md:col-span-2">
                           <div className="flex gap-2 min-w-max p-1 px-2">
                             {isThemesLoading ? (
                               <div className="flex justify-center py-8 min-w-[200px]">
@@ -940,7 +939,7 @@ export default function EditQuizPage() {
                         {/* Upload Own Theme - Fixed beside theme list */}
                         <div
                           onClick={() => coverImageInputRef.current?.click()}
-                          className={`aspect-video rounded-xl border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group w-48 flex-shrink-0 ${
+                          className={`aspect-video rounded-xl col-span-4 lg:col-span-1 w-full h-26 lg:w-48 border-2 border-dashed border-[#C9750A] bg-[#efebe9]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#efebe9] transition-colors gap-2 group flex-shrink-0 ${
                             selectedTheme === "custom" ? "border-[#C9750A] bg-[#efebe9]" : ""
                           }`}
                         >
@@ -983,7 +982,7 @@ export default function EditQuizPage() {
                     </div>
 
                     {/* Quiz Details Section */}
-                    <div className="space-y-6">
+                    <div className="space-y-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
                           control={form.control}
@@ -1108,14 +1107,14 @@ export default function EditQuizPage() {
                 </Form>
               ) : (
                 // Buat Soal Form - 3-6-3 Column Layout
-                <div className="flex-1 grid grid-cols-12 gap-6">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 overflow-auto p-2 md:p-0">
                   {/* Section 1 - Questions List */}
-                  <div className="col-span-2 space-y-3 p-4 md:p-6 max-h-[calc(100vh-150px)] overflow-y-auto pr-2 border-r-2 border-[#C9750A]">
-                    <div className="space-y-2">
+                  <div className="col-span-12 lg:col-span-2 p-2 md:p-4 lg:p-6 lg:max-h-[calc(100vh-150px)] lg:overflow-y-auto lg:pr-2 lg:border-r-2 lg:border-[#C9750A]">
+                    <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
                       {questions.map((question, index) => (
                         <div 
                           key={index} 
-                          className="bg-tranparent relative rounded-lg p-3 pr-6 border border-[#C9750A] min-h-24 max-h-24 flex items-center w-full justify-center"
+                          className="bg-tranparent relative rounded-lg p-2 sm:p-3 sm:pr-6 border border-[#C9750A] min-h-20 sm:min-h-24 max-h-24 flex items-center w-20 sm:w-24 lg:w-full justify-center flex-shrink-0"
                           style={question.imageUrl ? {
                             backgroundImage: `url(${question.imageUrl})`,
                             backgroundSize: 'cover',
@@ -1124,11 +1123,11 @@ export default function EditQuizPage() {
                           } : {}}
                         >
                           {!question.imageUrl && (
-                            <img src="/empty-question.svg" alt="Question" className="h-18"/>
+                            <img src="/empty-question.svg" alt="Question" className="h-12 sm:h-18"/>
                           )}
                           <button
                             onClick={(e) => handleEditQuestion(e, question.id)}
-                            className="rounded-sm cursor-pointer bg-blue-500/20 absolute right-9 top-2 transition-opacity text-blue-500 hover:text-blue-700 p-1"
+                            className="rounded-sm cursor-pointer bg-blue-500/20 absolute right-7 sm:right-9 top-1 sm:top-2 transition-opacity text-blue-500 hover:text-blue-700 p-0.5 sm:p-1"
                             title="Edit Soal"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,7 +1136,7 @@ export default function EditQuizPage() {
                           </button>
                           <button
                             onClick={() => handleDeleteQuestion(question.id)}
-                            className="rounded-sm cursor-pointer bg-red-500/20 absolute right-2 top-2 transition-opacity text-red-500 hover:text-red-700 p-1"
+                            className="rounded-sm cursor-pointer bg-red-500/20 absolute right-1 sm:right-2 top-1 sm:top-2 transition-opacity text-red-500 hover:text-red-700 p-0.5 sm:p-1"
                             title="Hapus Soal"
                           >
                             <Trash2 size={16} />
@@ -1146,8 +1145,8 @@ export default function EditQuizPage() {
                       ))}
 
                       {questions.length === 0 && (
-                        <div className="text-center text-gray-500 py-10 border-2 border-[#C9750A] rounded-xl">
-                          <p>Belum ada soal</p>
+                        <div className="text-center text-gray-500 py-4 lg:py-10 border-2 border-[#C9750A] rounded-xl min-w-[80px] flex-shrink-0">
+                          <p className="text-xs lg:text-sm">Belum ada soal</p>
                         </div>
                       )}
                     </div>
@@ -1156,14 +1155,14 @@ export default function EditQuizPage() {
                         handleAddNewQuestion();
                         pauseMusic();
                       }}
-                      className="w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors"
+                      className="w-auto lg:w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors whitespace-nowrap flex-shrink-0"
                     >
-                      <Plus size={16}/> Tambah Soal
+                      <Plus size={14} className="sm:w-4 sm:h-4"/> Tambah Soal
                     </button>
                   </div>
 
                   {/* Section 2 - Question Input & Image Upload */}
-                  <div className="col-span-7 space-y-3  py-6 p-2 max-h-[calc(100vh-150px)] overflow-y-auto pr-2">
+                  <div className="col-span-12 md:col-span-7 lg:col-span-7 space-y-3 p-2 md:p-4 md:py-6 md:max-h-[calc(100vh-150px)] md:overflow-y-auto md:pr-2">
                     {/* Question Text Input */}
                     <div>
                       <label className="block text-black font-bold mb-2">Pertanyaan</label>
@@ -1177,7 +1176,7 @@ export default function EditQuizPage() {
                     
                     {/* Image Upload */}
                     <div className="flex flex-col justify-center items-center">
-                      <div className="w-80">
+                      <div className="w-full max-w-xs sm:max-w-sm md:w-80">
                         <input
                           type="file"
                           ref={questionImageInputRef}
@@ -1223,9 +1222,9 @@ export default function EditQuizPage() {
                           <label className="text-xs block text-gray-600 font-bold">Jawaban</label>
                           <span className="text-xs text-gray-600">Checklist satu jawaban yang benar</span>
                         </div>
-                        <div className={`grid ${newQuestion.options.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-8`}>
+                        <div className={`grid ${newQuestion.options.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-4 sm:gap-6 md:gap-8`}>
                           {newQuestion.options.map((option, index: number) => (
-                            <div key={index} className="bg-[#784421] border border-[#784421]/10 rounded-lg p-4 relative shadow-md h-full flex flex-col">
+                            <div key={index} className="bg-[#784421] border border-[#784421]/10 rounded-lg p-2 sm:p-3 md:p-4 relative shadow-md h-full flex flex-col">
                               {/* Delete button */}
                               <button
                                 type="button"
@@ -1310,7 +1309,7 @@ export default function EditQuizPage() {
                                 </div>
                               </div>
 
-                              <div className="bg-[#6B3F2B] border border-[#6B3F2B]/30 shadow-2xl rounded-lg p-4 flex-1 flex items-center justify-center min-h-[150px]">
+                              <div className="bg-[#6B3F2B] border border-[#6B3F2B]/30 shadow-2xl rounded-lg p-2 sm:p-3 md:p-4 flex-1 flex items-center justify-center min-h-[100px] sm:min-h-[120px] md:min-h-[150px]">
                                 {option.imageUrl ? (
                                   <div className="w-full h-full flex items-center justify-center">
                                     <img 
@@ -1328,9 +1327,9 @@ export default function EditQuizPage() {
                                       );
                                       setNewQuestion({...newQuestion, options: updatedOptions});
                                     }}
-                                    className="w-full h-full bg-transparent rounded-md px-3 py-2 text-white placeholder-white/70 text-sm resize-none text-center"
+                                    className="w-full h-full bg-transparent rounded-md px-2 sm:px-3 py-1 sm:py-2 text-white placeholder-white/70 text-xs sm:text-sm resize-none text-center"
                                     placeholder={`Tulis jawaban ${index + 1}`}
-                                    style={{ minHeight: '100px' }}
+                                    style={{ minHeight: '80px' }}
                                   />
                                 )}
                               </div>
@@ -1365,9 +1364,9 @@ export default function EditQuizPage() {
                   </div>
 
                   {/* Section 3 - Settings & Answer Cards */}
-                  <div className="col-span-3 space-y-3 p-4 md:p-6 max-h-[calc(100vh-150px)] overflow-y-auto-auto pl-2 border-l border-[#C9750A]">
+                  <div className="col-span-12 md:col-span-5 lg:col-span-3 space-y-3 p-2 md:p-4 lg:p-6 lg:max-h-[calc(100vh-150px)] lg:overflow-y-auto lg:pl-2 lg:border-l lg:border-[#C9750A]">
                     {/* Settings Section */}
-                    <div className="border-2 border-[#C9750A] rounded-2xl p-2">
+                    <div className="border-2 border-[#C9750A] rounded-2xl p-2 md:p-4">
                       <div className="space-y-4">
                         <div>
                           <label className="block text-black font-bold mb-2">Tipe soal</label>
@@ -1389,15 +1388,15 @@ export default function EditQuizPage() {
                             onChange={(e) => setNewQuestion({...newQuestion, timeLimit: parseInt(e.target.value)})}
                             className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-black"
                           >
-                            <option value={10}>10 Detik</option>
                             <option value={20}>20 Detik</option>
                             <option value={30}>30 Detik</option>
                             <option value={40}>40 Detik</option>
                             <option value={50}>50 Detik</option>
-                            <option value={60}>60 Detik</option>
-                            <option value={100}>100 Detik</option>
-                            <option value={120}>120 Detik</option>
-                            <option value={180}>180 Detik</option>
+                            <option value={60}>1 Menit</option>
+                            <option value={120}>2 Menit</option>
+                            <option value={180}>3 Menit</option>
+                            <option value={240}>4 Menit</option>
+                            <option value={300}>5 Menit</option>
                           </select>
                         </div>
                         <div>
