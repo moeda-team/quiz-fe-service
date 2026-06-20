@@ -3,7 +3,11 @@
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useRef, useEffect } from 'react';
 
-export default function GlobalMusicPlayer() {
+interface GlobalMusicPlayerProps {
+  volume?: number;
+}
+
+export default function GlobalMusicPlayer({ volume = 0.2 }: GlobalMusicPlayerProps) {
   const {
     currentMusicUrl,
     isPlaying,
@@ -13,6 +17,14 @@ export default function GlobalMusicPlayer() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Clamp volume between 0 and 1 and apply to audio element
+  const clampedVolume = Math.min(1, Math.max(0, volume));
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
+  }, [clampedVolume]);
 
   // Handle audio loading and playback
   useEffect(() => {
