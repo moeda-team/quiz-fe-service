@@ -96,32 +96,35 @@ export default function CodePage() {
           fontFamily: 'Varela Round',
         }}
       >
-        <div className="flex items-center justify-center pt-2 sm:pt-4">
+        <div className="flex items-center justify-center">
           <Image src="/logo-mobile.svg" alt="Logo" width={200} height={200} className="w-32 sm:w-40 md:w-48 lg:w-56" />
         </div>
         
         <GlobalMusicPlayer />
         
         {/* Card with background image - content overlaid inside */}
-        <div className="relative w-full flex-1">
-          {/* Card background image */}
-          <img
+        <div className="relative w-full max-w-md mx-auto">
+          {/* Image drives the height */}
+          <Image
             src="/card-mobile.svg"
-            alt="Card"
-            className="w-full h-full object-fill"
+            alt="Card background"
+            width={800}
+            height={900}
+            className="w-full h-auto"
+            priority
           />
 
           {/* Content overlay - centered inside the card */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 sm:px-12 md:px-16 lg:px-20 py-8 sm:py-12 md:py-16">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 sm:px-12 md:px-16 lg:px-20 py-8 sm:py-10 md:py-12 lg:py-16 overflow-y-auto">
             <div className="flex items-center justify-center mb-2 sm:mb-3">
-              <Image src="/mobile-efect.svg" alt="Decoration" width={150} height={150} className="w-20 sm:w-24 md:w-32" />
+              <Image src="/mobile-efect.svg" alt="Decoration" width={150} height={150} className="w-32" />
             </div>
             <div className="w-full max-w-[260px] sm:max-w-sm md:max-w-md mx-auto flex items-center justify-center flex-col my-3 sm:my-4">
              <p className="text-gray-700 text-base sm:text-lg md:text-xl font-semibold text-center">Siap Ikut Kuis?</p>
              <p className="text-gray-700 text-xs sm:text-sm md:text-base font-normal text-center max-w-[220px] sm:max-w-[280px] md:max-w-[320px]">Masukkan namamu dan kode kuis untuk mulai bermain 🎉</p>
              <input
               type="text"
-              className={`w-full rounded-lg border-2 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg ${errors.name ? 'border-red-500' : 'border-amber-600'}`}
+              className={`w-full rounded-lg border-2 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 mt-2 text-sm sm:text-base ${errors.name ? 'border-red-500' : 'border-amber-600'}`}
               placeholder="Nama Peserta"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -129,7 +132,7 @@ export default function CodePage() {
             {errors.name && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.name}</p>}
              <input
               type="text"
-              className={`w-full rounded-lg border-2 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg ${errors.joinCode ? 'border-red-500' : 'border-amber-600'}`}
+              className={`w-full rounded-lg border-2 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 mt-2 text-sm sm:text-base ${errors.joinCode ? 'border-red-500' : 'border-amber-600'}`}
               placeholder="Contoh: ABC123"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
