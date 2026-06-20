@@ -145,7 +145,7 @@ export default function HistoryPage() {
         </div>
   
         {/* Header */}
-        <GlobalMusicPlayer />
+        <GlobalMusicPlayer autoPlay />
 
         {/* back */}
         <div className="relative w-full flex justify-end p-2 sm:p-4">
