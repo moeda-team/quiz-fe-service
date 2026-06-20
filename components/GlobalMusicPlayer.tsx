@@ -5,9 +5,10 @@ import { useRef, useEffect } from 'react';
 
 interface GlobalMusicPlayerProps {
   volume?: number;
+  autoPlay?: boolean;
 }
 
-export default function GlobalMusicPlayer({ volume = 0.2 }: GlobalMusicPlayerProps) {
+export default function GlobalMusicPlayer({ volume = 0.2, autoPlay = false }: GlobalMusicPlayerProps) {
   const {
     currentMusicUrl,
     isPlaying,
@@ -25,6 +26,30 @@ export default function GlobalMusicPlayer({ volume = 0.2 }: GlobalMusicPlayerPro
       audioRef.current.volume = clampedVolume;
     }
   }, [clampedVolume]);
+
+  // Attempt autoplay on mount
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    if (!currentMusicUrl || currentMusicUrl === "") {
+      setQuizMusic("/media/default.mp3");
+    }
+
+    if (!isPlaying) {
+      togglePlayPause();
+    }
+
+    // Retry after a short delay in case the browser blocks immediate autoplay
+    const timer = setTimeout(() => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {
+          // Autoplay blocked; user can still click the speaker button
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [autoPlay, currentMusicUrl, isPlaying, setQuizMusic, togglePlayPause]);
 
   // Handle audio loading and playback
   useEffect(() => {

@@ -353,7 +353,7 @@ export default function CodePage() {
           />
         </div>
 
-        <GlobalMusicPlayer />
+        <GlobalMusicPlayer autoPlay volume={0.2} />
 
         {loading && (
           <Loading fullscreen />
