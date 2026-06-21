@@ -58,6 +58,7 @@ export default function CodePage() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const selectedOptionRef = useRef<string | null>(null); // tambah ini
   const [textAnswer, setTextAnswer] = useState('');
+  const [isEssayLocked, setIsEssayLocked] = useState(false);
   const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
   const [answerStartTime, setAnswerStartTime] = useState<number>(0);
   const [isleaderboard, setIsLeaderboard] = useState(false);
@@ -218,6 +219,7 @@ export default function CodePage() {
     selectedOptionRef.current = null; // reset ref juga
     setTextAnswer("");
     setPuzzleOrder([]);
+    setIsEssayLocked(false);
     setLoading(true);
 
     setTimeout(() => {
@@ -376,7 +378,16 @@ export default function CodePage() {
               >
                 {/* timer */}
                 <div className="absolute w-full">
-                  <div className="text-red-600 lg:w-22 lg:h-24 lg:ml-0 w-28 h-20 pr-3 text-lg font-bold text-center flex items-center justify-center">
+                  <div 
+                    className="text-red-600 w-18 h-18 pt-2 text-lg font-bold text-center flex items-center justify-center"
+                    style={{
+                      backgroundImage: 'url(/bg-timer.svg)',
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'top',
+                      fontFamily: 'Varela Round',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  >
                     <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
                   </div>
                 </div>
@@ -410,8 +421,19 @@ export default function CodePage() {
                         value={textAnswer}
                         onChange={(e) => setTextAnswer(e.target.value)}
                         placeholder="Tulis jawaban Anda di sini..."
-                        className="w-full px-3 py-2 border border-amber-700 rounded-lg text-amber-900 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-700 text-sm sm:text-base min-h-24"
+                        disabled={isEssayLocked}
+                        className={`w-full px-3 py-2 border border-amber-700 rounded-lg text-amber-900 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-700 text-sm sm:text-base min-h-24 transition-opacity ${isEssayLocked ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}
                       />
+                      <button
+                        onClick={() => setIsEssayLocked(!isEssayLocked)}
+                        className={`w-full py-2 rounded-lg font-bold text-sm sm:text-base transition-colors ${
+                          isEssayLocked
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-amber-700 text-white hover:bg-amber-800'
+                        }`}
+                      >
+                        {isEssayLocked ? '✓ Jawaban Terkunci' : 'Kunci Jawaban'}
+                      </button>
                     </div>
                   ) : question?.type === 'TRUE_FALSE' ? (
                     <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
