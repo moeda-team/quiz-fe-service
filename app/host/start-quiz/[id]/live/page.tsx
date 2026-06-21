@@ -148,7 +148,7 @@ export default function HistoryPage() {
         <GlobalMusicPlayer autoPlay />
 
         {/* back */}
-        <div className="relative w-full flex justify-end p-2 sm:p-4">
+        <div className="relative z-10 w-full flex justify-end p-2 sm:p-4">
           {/* <button onClick={() => router.back()} className="">
             <Image
               src="/back.svg"
@@ -173,11 +173,11 @@ export default function HistoryPage() {
           )}
         </div>
 
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-4 md:gap-6 flex-1 min-h-0">
-          <div className="flex flex-row gap-4 md:gap-6 mb-3 flex-1 min-h-0 mx-2 sm:mx-4 md:mx-10 lg:mx-20">
+        <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col gap-4 md:gap-6">
+          <div className="flex flex-row gap-4 md:gap-6 mb-3 mx-2 sm:mx-4">
             {/* Main Card List */}
             <div
-              className="flex-1 items-start justify-start rounded-2xl sm:rounded-4xl relative overflow-hidden flex flex-col min-h-0 auto h-[calc(100vh-100px)]"
+              className="flex-1 rounded-2xl sm:rounded-4xl overflow-hidden flex flex-col h-screen"
               style={{
                   backgroundImage: 'url(/bg-play.svg)',
                   backgroundSize: 'contain',
@@ -186,25 +186,36 @@ export default function HistoryPage() {
                   backgroundRepeat: 'no-repeat',
                 }}
               >
-              <div className="relative w-full">
+              <div className="flex flex-col items-center w-full gap-4 md:gap-8 py-2 md:py-6 px-4 sm:px-24 md:px-16">
                 {/* total question */}
-                <div className="text-black text-base sm:text-xl md:text-2xl font-bold absolute top-4 sm:top-8 md:top-10 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="text-black text-base sm:text-xl md:text-2xl font-bold text-center">
                   {currentQuestion + 1}/{questions?.length}
                 </div>
 
                 {/* timer */}
-                <div className="text-red-600 text-lg sm:text-xl md:text-2xl font-bold absolute top-14 sm:top-18 md:top-22 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <QuizTimer timeLimit={questions?.[currentQuestion]?.timeLimit ?? 30} onTimeUp={handleTimeUp} />
+                <div className="absolute w-full">
+                  <div 
+                    className="text-red-600 w-24 h-24 pt-2 text-lg font-bold text-center flex items-center justify-center"
+                    style={{
+                      backgroundImage: 'url(/bg-timer.svg)',
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'top',
+                      fontFamily: 'Varela Round',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  >
+                    <QuizTimer timeLimit={questions?.[currentQuestion]?.timeLimit ?? 30} onTimeUp={handleTimeUp} />
+                  </div>
                 </div>
 
                 {/* question */}
-                <div className="text-black text-sm sm:text-lg md:text-2xl px-4 sm:px-12 md:px-24 w-full text-center font-bold absolute top-20 sm:top-26 md:top-32 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="text-black text-sm sm:text-lg md:text-2xl w-full text-center font-bold md:mt-4">
                   {questions?.[currentQuestion]?.text}
                 </div>
 
                 {/* image */}
                 {questions?.[currentQuestion]?.imageUrl && (
-                  <div className="absolute top-44 sm:top-56 md:top-70 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl h-[100px] sm:h-[140px] md:h-[180px]">
+                  <div className="rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md h-[100px] sm:h-[180px] md:h-[200px]">
                     <img
                       src={questions?.[currentQuestion]?.imageUrl || "/images/bg-main.webp"}
                       alt="Quiz"
@@ -215,11 +226,11 @@ export default function HistoryPage() {
                   
                 {/* select question */}
                 {questions?.[currentQuestion]?.type === 'ESSAY' ? (
-                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-[280px] sm:top-[340px] md:top-96' : 'top-44 sm:top-56 md:top-70'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[90%] sm:w-[85%] md:w-[80%]`}>
+                  <div className="w-[90%] sm:w-[85%] md:w-[80%]">
                     <p className="text-amber-900 text-sm sm:text-lg md:text-2xl font-bold text-center">Sedang dijawab peserta ...</p>
                   </div>
                 ) : (
-                  <div className={`absolute ${questions?.[currentQuestion]?.imageUrl ? 'top-[280px] sm:top-[340px] md:top-96' : 'top-44 sm:top-56 md:top-70'} left-1/2 h-full transform -translate-x-1/2 -translate-y-1/2 w-[90%] sm:w-[85%] md:w-[80%]`}>
+                  <div className="w-[90%] sm:w-[85%] md:w-[80%]">
                     <div className={`grid gap-2 sm:gap-3 md:gap-4 w-full ${questions?.[currentQuestion]?.options?.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
                     {questions?.[currentQuestion]?.options?.map((option, index) => (
                       <div
