@@ -17,6 +17,7 @@ export default function GlobalMusicPlayer({ volume = 0.2, autoPlay = false }: Gl
   } = useMusicPlayer();
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const autoPlayFiredRef = useRef(false);
 
   // Clamp volume between 0 and 1 and apply to audio element
   const clampedVolume = Math.min(1, Math.max(0, volume));
@@ -27,9 +28,11 @@ export default function GlobalMusicPlayer({ volume = 0.2, autoPlay = false }: Gl
     }
   }, [clampedVolume]);
 
-  // Attempt autoplay on mount
+  // Attempt autoplay once on mount (only if autoPlay prop is true)
   useEffect(() => {
     if (!autoPlay) return;
+    if (autoPlayFiredRef.current) return;
+    autoPlayFiredRef.current = true;
 
     if (!currentMusicUrl || currentMusicUrl === "") {
       setQuizMusic("/media/default.mp3");
@@ -49,7 +52,9 @@ export default function GlobalMusicPlayer({ volume = 0.2, autoPlay = false }: Gl
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [autoPlay, currentMusicUrl, isPlaying, setQuizMusic, togglePlayPause]);
+  // Only run on mount — do NOT re-run when isPlaying or currentMusicUrl change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle audio loading and playback
   useEffect(() => {

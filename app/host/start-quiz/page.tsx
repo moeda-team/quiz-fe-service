@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import GlobalMusicPlayer from "@/components/GlobalMusicPlayer";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardAdminPage() {
   const router = useRouter();
@@ -64,6 +65,11 @@ export default function DashboardAdminPage() {
         />
       </div>
 
+      {/* Back Button */}
+      <Link href="/host" className="fixed top-6 left-6 z-50 w-12 h-12 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all">
+        <ChevronLeft size={24} />
+      </Link>
+      
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col pt-6 md:pt-10 pb-4 md:pb-6 px-4 sm:px-6 lg:px-8 min-h-0">
         {/* Header */}

@@ -155,7 +155,7 @@ export default function HistoryPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="w-full h-64 sm:h-80 md:h-96 overflow-auto bg-[#291B13] rounded-lg text-white">
+                  <div className="w-full h-64 sm:h-80 md:h-[calc(100vh-380px)] overflow-auto bg-[#291B13] rounded-lg text-white">
                     <Table className="border-white">
                       <TableHeader>
                         <TableRow className="border-white hover:bg-transparent">

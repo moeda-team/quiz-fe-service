@@ -164,8 +164,8 @@ export default function HistoryPage() {
               <Image
                 src="/next-q.svg"
                 alt="Next"
-                width={80}
-                height={80}
+                width={150}
+                height={150}
                 className="object-cover"
                 priority
               />

@@ -166,7 +166,7 @@ export default function CodePage() {
     const currentRoom = roomDataRef.current;
     const currentQuestion = questionRef.current;
 
-    console.log("QUESTION:", currentQuestion?.type);
+    console.log("QUESTION:", currentQuestion);
     console.log("selectedOption", selectedOption);
 
     if (!socket) return;
@@ -337,7 +337,7 @@ export default function CodePage() {
   return (
     <main className="min-h-screen w-full">
       <div 
-        className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
+        className="mx-auto w-full  bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
         style={{
           backgroundImage: 'url(/bg-mobile.svg)',
           backgroundSize: 'cover',
@@ -567,8 +567,8 @@ export default function CodePage() {
                 <Image
                   src="/back.svg"
                   alt="Back"
-                  width={60}
-                  height={60}
+                  width={100}
+                  height={100}
                   className="sm:h-14 md:w-20 md:h-20 object-cover"
                   priority
                 />

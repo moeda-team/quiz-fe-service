@@ -25,8 +25,8 @@ export default function AuthLandingPage() {
         <Image
           src="/images/welcome.svg"
           alt="Welcome"
-          width={100}
-          height={100}
+          width={150}
+          height={150}
           className="w-3/12 fixed right-0 bottom-0 z-50 max-w-[200px] lg:max-w-[250px]"
         />
       </div>
