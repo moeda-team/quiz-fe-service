@@ -185,6 +185,40 @@ export default function EditQuizPage() {
   
   // State untuk tracking mode edit soal
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+
+  // State for drag-and-drop reorder (PUZZLE)
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) return;
+    const updatedOptions = [...newQuestion.options];
+    const [movedItem] = updatedOptions.splice(dragIndex, 1);
+    updatedOptions.splice(index, 0, movedItem);
+    // Update order values to match new positions
+    const reorderedOptions = updatedOptions.map((opt, i) => ({ ...opt, order: i + 1 }));
+    setNewQuestion({ ...newQuestion, options: reorderedOptions });
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
   
   // Global music player
   const { setQuizMusic, togglePlayPause, pauseMusic, isPlaying, currentMusicUrl } = useMusicPlayer();
@@ -201,12 +235,14 @@ export default function EditQuizPage() {
       points: number | null;
       imageUrl?: string;
     }>;
+    order: number;
     musicFile?: string;
     imageUrl?: string;
   }>({
     text: "",
     type: "MULTIPLE_CHOICE",
     timeLimit: 30,
+    order: 1,
     imageUrl: "",
     musicFile: "",
     options: [
@@ -230,7 +266,8 @@ export default function EditQuizPage() {
           ];
         case "PUZZLE":
           return [
-            { text: "", points: null, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 10, isCorrect: true, order: 2, imageUrl: "" }
           ];
         case "MULTIPLE_CHOICE":
           return [
@@ -446,6 +483,7 @@ export default function EditQuizPage() {
       text: "",
       type: "MULTIPLE_CHOICE",
       timeLimit: 30,
+      order: questions.length + 1,
       options: [
         { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
         { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
@@ -577,7 +615,8 @@ export default function EditQuizPage() {
             { text: "", points: 100, isCorrect: true, order: 1, imageUrl: "" }
           ],
           "PUZZLE": [
-            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" }
+            { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
+            { text: "", points: 10, isCorrect: true, order: 2, imageUrl: "" }
           ],
           "MULTIPLE_CHOICE": [
             { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
@@ -593,6 +632,7 @@ export default function EditQuizPage() {
           text: questionToEdit.text || "",
           type: questionToEdit.type || "MULTIPLE_CHOICE",
           timeLimit: questionToEdit.timeLimit || 30,
+          order: questionToEdit.order || questions.length + 1,
           imageUrl: questionToEdit.imageUrl || "",
           musicFile: questionToEdit.musicFile || "",
           options: mappedOptions
@@ -619,6 +659,7 @@ export default function EditQuizPage() {
       text: "",
       type: "TRUE_FALSE",
       timeLimit: 30,
+      order: questions.length + 1,
       imageUrl: "",
       musicFile: "",
       options: [
@@ -663,7 +704,7 @@ export default function EditQuizPage() {
       let questionPayload: QuestionPayload;
       const basePayload: BaseQuestionPayload = {
         quizId: params.id as string,
-        order: questions.length + 1,
+        order: newQuestion.order || questions.length + 1,
         text: newQuestion.text,
         type: newQuestion.type,
         timeLimit: newQuestion.timeLimit,
@@ -729,7 +770,7 @@ export default function EditQuizPage() {
         case "PUZZLE": {
           const puzzleItems: PuzzleItem[] = newQuestion.options.map((option, index) => ({
             text: option.text,
-            correctOrder: option.isCorrect ? index + 1 : index + 1,
+            correctOrder: index + 1,
             points: option.points ?? 10
           }));
           questionPayload = {
@@ -1155,7 +1196,7 @@ export default function EditQuizPage() {
                         handleAddNewQuestion();
                         pauseMusic();
                       }}
-                      className="w-auto lg:w-full text-xs flex gap-2 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors whitespace-nowrap flex-shrink-0"
+                      className="w-auto lg:w-full text-xs flex gap-2 mt-4 items-center justify-center cursor-pointer bg-[#C9750A] hover:bg-[#C9750A] text-white rounded-sm p-2 font-bold transition-colors whitespace-nowrap flex-shrink-0"
                     >
                       <Plus size={14} className="sm:w-4 sm:h-4"/> Tambah Soal
                     </button>
@@ -1220,11 +1261,35 @@ export default function EditQuizPage() {
                       <div className="w-full">
                         <div className="flex justify-between w-full items-center my-2">
                           <label className="text-xs block text-gray-600 font-bold">Jawaban</label>
-                          <span className="text-xs text-gray-600">Checklist satu jawaban yang benar</span>
+                          {newQuestion.type !== "PUZZLE" && (
+                            <span className="text-xs text-gray-600">Checklist satu jawaban yang benar</span>
+                          )}
+                          {newQuestion.type === "PUZZLE" && (
+                            <span className="text-xs text-gray-600">Susun urutan jawaban yang benar</span>
+                          )}
                         </div>
-                        <div className={`grid ${newQuestion.options.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-4 sm:gap-6 md:gap-8`}>
+                        <div className={`grid ${newQuestion.type === 'PUZZLE' ? 'grid-cols-1' : newQuestion.options.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-4 sm:gap-6 md:gap-8`}>
                           {newQuestion.options.map((option, index: number) => (
-                            <div key={index} className="bg-[#784421] border border-[#784421]/10 rounded-lg p-2 sm:p-3 md:p-4 relative shadow-md h-full flex flex-col">
+                            <div
+                              key={index}
+                              className={`bg-[#784421] border rounded-lg p-2 sm:p-3 md:p-4 relative shadow-md flex flex-col ${
+                                newQuestion.type === 'PUZZLE' ? 'h-36' : 'h-full'
+                              } ${
+                                newQuestion.type === 'PUZZLE'
+                                  ? dragIndex === index
+                                    ? 'opacity-50 border-yellow-400 border-2'
+                                    : dragOverIndex === index
+                                    ? 'border-yellow-400 border-2 scale-[1.02]'
+                                    : 'border-[#784421]/10'
+                                  : 'border-[#784421]/10'
+                              } transition-all`}
+                              draggable={newQuestion.type === 'PUZZLE'}
+                              onDragStart={newQuestion.type === 'PUZZLE' ? () => handleDragStart(index) : undefined}
+                              onDragOver={newQuestion.type === 'PUZZLE' ? (e) => handleDragOver(e, index) : undefined}
+                              onDragLeave={newQuestion.type === 'PUZZLE' ? handleDragLeave : undefined}
+                              onDrop={newQuestion.type === 'PUZZLE' ? () => handleDrop(index) : undefined}
+                              onDragEnd={newQuestion.type === 'PUZZLE' ? handleDragEnd : undefined}
+                            >
                               {/* Delete button */}
                               <button
                                 type="button"
@@ -1289,27 +1354,53 @@ export default function EditQuizPage() {
                                     placeholder="0"
                                   />
                                   
-                                  {/* Checkbox */}
-                                  <div 
-                                    className="w-8 h-8 rounded-md bg-white flex items-center justify-center shadow-md cursor-pointer flex-shrink-0 hover:shadow-lg transition-shadow"
-                                    onClick={() => {
-                                      const updatedOptions = newQuestion.options.map((opt, i) => 
-                                        i === index ? {...opt, isCorrect: !opt.isCorrect, points: !opt.isCorrect ? opt.points :  0 } : opt
-                                      );
-                                      setNewQuestion({...newQuestion, options: updatedOptions});
-                                    }}
-                                    title={option.isCorrect ? "Jawaban Benar" : "Jawaban Salah"}
-                                  >
-                                    {option.isCorrect ? (
-                                      <img src="/images/checkbox-checked.svg" alt="Checked" className="w-full h-full bg-green-400 rounded-md" />
-                                    ) : (
-                                      <img src="/images/checkbox-unchecked.svg" alt="Unchecked" className="w-full h-full bg-amber-800 rounded-md" />
-                                    )}
-                                  </div>
+                                  {/* Checkbox or Order Number (PUZZLE) */}
+                                  {newQuestion.type === "PUZZLE" ? (
+                                    <div 
+                                      className="flex items-center gap-1 flex-shrink-0 cursor-move"
+                                      title={`Urutan ke-${index + 1} - Seret untuk mengubah urutan`}
+                                    >
+                                      {/* Grip Handle Icon */}
+                                      <div className="flex flex-col gap-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                                        <div className="flex gap-0.5">
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                        </div>
+                                        <div className="flex gap-0.5">
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                        </div>
+                                        <div className="flex gap-0.5">
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                          <span className="w-1 h-1 bg-white rounded-full"></span>
+                                        </div>
+                                      </div>
+                                      <div className="w-8 h-8 rounded-md bg-[#C9750A] flex items-center justify-center shadow-md text-white font-bold text-sm">
+                                        #{index + 1}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div 
+                                      className="w-8 h-8 rounded-md bg-white flex items-center justify-center shadow-md cursor-pointer flex-shrink-0 hover:shadow-lg transition-shadow"
+                                      onClick={() => {
+                                        const updatedOptions = newQuestion.options.map((opt, i) => 
+                                          i === index ? {...opt, isCorrect: !opt.isCorrect, points: !opt.isCorrect ? opt.points :  0 } : opt
+                                        );
+                                        setNewQuestion({...newQuestion, options: updatedOptions});
+                                      }}
+                                      title={option.isCorrect ? "Jawaban Benar" : "Jawaban Salah"}
+                                    >
+                                      {option.isCorrect ? (
+                                        <img src="/images/checkbox-checked.svg" alt="Checked" className="w-full h-full bg-green-400 rounded-md" />
+                                      ) : (
+                                        <img src="/images/checkbox-unchecked.svg" alt="Unchecked" className="w-full h-full bg-amber-800 rounded-md" />
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
-                              <div className="bg-[#6B3F2B] border border-[#6B3F2B]/30 shadow-2xl rounded-lg p-2 sm:p-3 md:p-4 flex-1 flex items-center justify-center min-h-[100px] sm:min-h-[120px] md:min-h-[150px]">
+                              <div className={`bg-[#6B3F2B] border border-[#6B3F2B]/30 shadow-2xl rounded-lg p-2 sm:p-3 md:p-4 flex-1 flex items-center justify-center ${newQuestion.type === 'PUZZLE' ? 'min-h-[40px]' : 'min-h-[100px] sm:min-h-[120px] md:min-h-[150px]'}`}>
                                 {option.imageUrl ? (
                                   <div className="w-full h-full flex items-center justify-center">
                                     <img 
@@ -1329,7 +1420,7 @@ export default function EditQuizPage() {
                                     }}
                                     className="w-full h-full bg-transparent rounded-md px-2 sm:px-3 py-1 sm:py-2 text-white placeholder-white/70 text-xs sm:text-sm resize-none text-center"
                                     placeholder={`Tulis jawaban ${index + 1}`}
-                                    style={{ minHeight: '80px' }}
+                                    style={{ minHeight: newQuestion.type === 'PUZZLE' ? '30px' : '80px' }}
                                   />
                                 )}
                               </div>
@@ -1337,14 +1428,14 @@ export default function EditQuizPage() {
                           ))}
                         </div>
                         
-                        {/* Add Option Button - Only for PUZZLE type */}
-                        {newQuestion.type === "PUZZLE" || newQuestion.type === "MULTIPLE_CHOICE" && (
+                        {/* Add Option Button - Only for PUZZLE and MULTIPLE_CHOICE type */}
+                        {(newQuestion.type === "PUZZLE" || newQuestion.type === "MULTIPLE_CHOICE") && (
                           <button
                             type="button"
                             onClick={() => {
                               const newOption = {
                                 text: "",
-                                points: 0,
+                                points: newQuestion.type === "PUZZLE" ? 10 : 0,
                                 isCorrect: false,
                                 order: newQuestion.options.length + 1,
                                 imageUrl: ""
@@ -1378,7 +1469,7 @@ export default function EditQuizPage() {
                             <option value="TRUE_FALSE">Benar atau Salah</option>
                             <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
                             <option value="ESSAY">Essay</option>
-                            {/* <option value="PUZZLE">Puzzle</option> */}
+                            <option value="PUZZLE">Puzzle</option>
                           </select>
                         </div>
                         <div>
@@ -1398,6 +1489,16 @@ export default function EditQuizPage() {
                             <option value={240}>4 Menit</option>
                             <option value={300}>5 Menit</option>
                           </select>
+                        </div>
+                        <div>
+                          <label className="block text-black font-bold mb-2">Urutan Soal</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={newQuestion.order}
+                            onChange={(e) => setNewQuestion({...newQuestion, order: parseInt(e.target.value) || 1})}
+                            className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-black"
+                          />
                         </div>
                         <div>
                           <label className="block text-black font-bold mb-2">Musik</label>
