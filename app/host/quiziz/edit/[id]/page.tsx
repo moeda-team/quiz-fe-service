@@ -1470,6 +1470,7 @@ export default function EditQuizPage() {
                             <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
                             <option value="ESSAY">Essay</option>
                             <option value="PUZZLE">Puzzle</option>
+                            
                           </select>
                         </div>
                         <div>
