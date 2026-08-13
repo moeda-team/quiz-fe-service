@@ -108,6 +108,42 @@ export async function apiGet<T>(
 
   return res.json() as Promise<T>;
 }
+
+export async function apiDownload(
+  path: string
+): Promise<{ blob: Blob; fileName?: string }> {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    headers: { "Authorization": authHeader },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      if (typeof window !== "undefined") window.location.href = "/auth/login";
+      throw new Error("Unauthorized - redirecting to login");
+    }
+
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // Response error may not be JSON.
+    }
+    throw new Error(message);
+  }
+
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const regularName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+  const encodedName = utf8Name ?? regularName;
+
+  return {
+    blob: await res.blob(),
+    fileName: encodedName ? decodeURIComponent(encodedName) : undefined,
+  };
+}
 export async function apiPut<T>(
   path: string,
   body: unknown

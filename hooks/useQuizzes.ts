@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api";
-import { getErrorMessage, ErrorType, PaginatedResponse, CreateData, UpdateData } from "@/types/common";
-import { Quiz as QuizType, QuizQuestion, QuizApiResponse, QuizDynamicResponse, QuizCreateData, QuizResponse, QuizHistory, QuizHistoryDetail } from "@/types/quiz";
+import { useEffect, useState, useCallback } from "react";
+import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from "@/lib/api";
+import { getErrorMessage, ErrorType, PaginatedResponse, UpdateData } from "@/types/common";
+import { Quiz as QuizType, QuizQuestion, QuizDynamicResponse, QuizCreateData, QuizResponse, QuizHistory, QuizHistoryDetail } from "@/types/quiz";
 
 export interface Quiz {
   id: string | number;
@@ -222,6 +222,10 @@ export function useQuizzes(searchQuery: string = "") {
     }
   }, []);
 
+  const downloadHistoryReport = useCallback(async (sessionId: string) => {
+    return apiDownload(`/quiz-sessions/${sessionId}/export`);
+  }, []);
+
   const fetchCharacters = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -239,5 +243,5 @@ export function useQuizzes(searchQuery: string = "") {
     }
   }, []);
 
-  return { quizzes, characters, fetchCharacters, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById, getHistory, getHistoryDetail };
+  return { quizzes, characters, fetchCharacters, isLoading, isFetchingMore, error, hasMore, loadMore, createQuiz, updateQuiz, patchQuiz, deleteQuiz, getQuizById, getHistory, getHistoryDetail, downloadHistoryReport };
 }

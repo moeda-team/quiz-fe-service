@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Quiz, QuizHistory, QuizHistoryDetail } from "@/types/quiz";
 import { toast } from "sonner";
 import { useQuizzes } from "@/hooks/useQuizzes";
-import { Eye } from "lucide-react";
+import { Download, Eye, LoaderCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -23,12 +23,13 @@ import Loading from "@/components/button/Loading";
 export default function HistoryPage() {
   const params = useParams();
   const router = useRouter();
-  const { getQuizById, getHistory, getHistoryDetail } = useQuizzes();
+  const { getQuizById, getHistory, getHistoryDetail, downloadHistoryReport } = useQuizzes();
   
   const [quizdata, setQuizdata] = useState<Quiz | null>(null);
   const [history, setHistory] = useState<QuizHistory[]>([]);
   const [historyDetail, setHistoryDetail] = useState<QuizHistoryDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -77,6 +78,34 @@ export default function HistoryPage() {
       setHistoryDetail(response);
     } catch {
       toast.error("Gagal mengambil data history");
+    }
+  };
+
+  const handleDownloadReport = async (item: QuizHistory) => {
+    if (downloadingId) return;
+
+    try {
+      setDownloadingId(item.id);
+      const { blob, fileName } = await downloadHistoryReport(item.id);
+      const safeTitle = (quizdata?.title || "quiz")
+        .replace(/[^a-zA-Z0-9-_ ]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      const fallbackName = `report-${safeTitle || "quiz"}-${formatDate(item.startedAt, "yyyy-MM-dd-HHmm")}.xlsx`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName || fallbackName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      toast.success("Report Excel berhasil diunduh");
+    } catch (error) {
+      console.error("Failed to download quiz report:", error);
+      toast.error("Gagal mengunduh report Excel");
+    } finally {
+      setDownloadingId(null);
     }
   };
   
@@ -164,7 +193,7 @@ export default function HistoryPage() {
                           <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm">Peserta</TableHead>
                           <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden sm:table-cell">Join Code</TableHead>
                           <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden md:table-cell">Status</TableHead>
-                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm w-16 sm:w-24">#</TableHead>
+                          <TableHead className="text-white px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm w-24 sm:w-28">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="border-white max-h-96 overflow-y-auto">
@@ -183,6 +212,7 @@ export default function HistoryPage() {
                             <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden sm:table-cell">{item.joinCode}</TableCell>
                             <TableCell className="px-1 sm:px-2 text-center text-[10px] sm:text-xs md:text-sm hidden md:table-cell">{item.status}</TableCell>
                             <TableCell className="px-2 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
                               <button
                                 className="bg-[#F2C94C] text-black px-2 py-1 rounded hover:bg-[#e6b82a] transition-colors"
                                 title="Lihat Detail"
@@ -192,6 +222,19 @@ export default function HistoryPage() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
+                              <button
+                                className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                                title="Download Report Excel"
+                                disabled={downloadingId !== null}
+                                onClick={() => handleDownloadReport(item)}
+                              >
+                                {downloadingId === item.id ? (
+                                  <LoaderCircle className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                              </button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
