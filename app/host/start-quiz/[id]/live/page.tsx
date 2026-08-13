@@ -23,6 +23,7 @@ export default function HistoryPage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [questions, setQuestions] = useState<Question[] | []>([]);
   const [quizFinished, setQuizFinished] = useState(false);
+  const [hasRestoredState, setHasRestoredState] = useState(false);
   const autoNextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getCookie = (name: string): string | null => {
@@ -50,21 +51,61 @@ export default function HistoryPage() {
   }, [params.id, getQuizById]);
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!params.id || !session?.user?.id) return;
 
     const quizId = params.id as string;
     const hostId = session?.user?.id;
-
     const existingSessionId = getCookie(`quiz_session_${quizId}_${hostId}`);
+    const liveStateKey = `quiz_host_live_state_${existingSessionId}`;
+
+    const restoreTimer = window.setTimeout(() => {
+      try {
+        const savedState = localStorage.getItem(liveStateKey);
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
+          setCurrentQuestion(parsed.currentQuestion ?? 0);
+          setQuizFinished(Boolean(parsed.quizFinished));
+        }
+      } catch (error) {
+        console.warn('State live quiz guru tidak dapat dipulihkan:', error);
+        localStorage.removeItem(liveStateKey);
+      } finally {
+        setHasRestoredState(true);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
+  }, [params.id, session?.user?.id]);
+
+  useEffect(() => {
+    if (!params.id || !session?.user?.id || !hasRestoredState) return;
+
+    const quizId = params.id as string;
+    const hostId = session.user.id;
+    const existingSessionId = getCookie(`quiz_session_${quizId}_${hostId}`);
+    if (!existingSessionId) return;
+
+    const liveStateKey = `quiz_host_live_state_${existingSessionId}`;
+    const savedState = localStorage.getItem(liveStateKey);
+    const hasStarted = savedState ? Boolean(JSON.parse(savedState).started) : false;
     console.log('Existing session ID:', existingSessionId);
 
     lockSocketId(existingSessionId || '');
 
     console.log('Socket connected:', isConnected);
 
-    if (isConnected) {
+    if (isConnected && !hasStarted) {
       console.log('Emitting host:start_quiz with sessionId:', existingSessionId);
-      emit('host:start_quiz', { sessionId: existingSessionId });
+      emit('host:start_quiz', { sessionId: existingSessionId, hostId });
+      localStorage.setItem(liveStateKey, JSON.stringify({
+        started: true,
+        currentQuestion: 0,
+        quizFinished: false,
+      }));
+    } else if (isConnected) {
+      // Refresh/reconnect: jangan memulai kuis dari awal. Hubungkan socket
+      // guru yang baru ke session yang sedang berjalan.
+      emit('host:get_waiting_room', { sessionId: existingSessionId, hostId });
     } else {
       console.log('Socket not connected, waiting...');
     }
@@ -77,7 +118,20 @@ export default function HistoryPage() {
     return () => {
       off('quiz:started');
     };
-  }, [params.id, isConnected, emit, on, off, lockSocketId, session]);
+  }, [params.id, isConnected, emit, on, off, lockSocketId, session, hasRestoredState]);
+
+  useEffect(() => {
+    if (!hasRestoredState || !params.id || !session?.user?.id) return;
+
+    const sessionId = getCookie(`quiz_session_${String(params.id)}_${session.user.id}`);
+    if (!sessionId) return;
+
+    localStorage.setItem(`quiz_host_live_state_${sessionId}`, JSON.stringify({
+      started: true,
+      currentQuestion,
+      quizFinished,
+    }));
+  }, [currentQuestion, quizFinished, hasRestoredState, params.id, session?.user?.id]);
 
   useEffect(() => {
     return () => {
