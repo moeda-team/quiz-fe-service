@@ -287,6 +287,16 @@ export default function WaitingRoomPage() {
     // Check if session already exists in cookies
     const existingSessionId = getCookie(`quiz_session_${quizId}_${hostId}`);
     const existingJoinCode = getCookie(`quiz_joincode_${quizId}_${hostId}`);
+
+    const syncHostSession = () => {
+      const currentSessionId = getCookie(`quiz_session_${quizId}_${hostId}`);
+      if (!currentSessionId) return;
+
+      socket.emit('host:get_waiting_room', {
+        sessionId: currentSessionId,
+        hostId,
+      });
+    };
     
     if (existingSessionId && existingJoinCode) {
       // Set room data from cookies (deferred to avoid cascading renders)
@@ -303,9 +313,7 @@ export default function WaitingRoomPage() {
       }, 0);
       
       // Get waiting room data with existing session
-      socket.emit('host:get_waiting_room', { 
-        sessionId: existingSessionId
-      });
+      syncHostSession();
     } else if (!sessionCreationAttempted.current) {
       // Create new session (only if not already attempted)
       sessionCreationAttempted.current = true;
@@ -401,6 +409,7 @@ export default function WaitingRoomPage() {
     // Set up event listeners
     socket.on('session:created', handleSessionCreated);
     socket.on('waiting_room:updated', handleWaitingRoomUpdated);
+    socket.on('connect', syncHostSession);
 
     // Add error handling
     socket.on('error', (error) => {
@@ -415,6 +424,7 @@ export default function WaitingRoomPage() {
     return () => {
       socket.off('session:created', handleSessionCreated);
       socket.off('waiting_room:updated', handleWaitingRoomUpdated);
+      socket.off('connect', syncHostSession);
       socket.off('error');
       socket.off('connect_error');
     };
