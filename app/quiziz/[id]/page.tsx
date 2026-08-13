@@ -402,9 +402,9 @@ export default function CodePage() {
   }, [socket]);
 
   return (
-    <main className="min-h-screen w-full">
+    <main className="min-h-screen w-full bg-[#291B13] flex justify-center">
       <div 
-        className="mx-auto w-full  bg-white px-3 sm:px-5 shadow-sm min-h-screen flex flex-col gap-2 sm:gap-4"
+        className="relative mx-auto w-full max-w-[430px] bg-white px-3 sm:px-5 shadow-2xl min-h-screen flex flex-col gap-2 sm:gap-4 overflow-hidden"
         style={{
           backgroundImage: 'url(/bg-mobile.svg)',
           backgroundSize: 'cover',
@@ -633,7 +633,7 @@ export default function CodePage() {
         : 
           <div className="relative">
             {/* back */}
-            <div className="fixed w-full flex justify-start top-2 left-2 sm:top-5 sm:left-5">
+            <div className="absolute z-20 flex justify-start top-2 left-2 sm:top-5 sm:left-5">
               <button onClick={() => router.push(`/quiziz`)} className="">
                 <Image
                   src="/back.svg"
