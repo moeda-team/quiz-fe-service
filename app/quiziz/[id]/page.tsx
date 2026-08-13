@@ -298,13 +298,23 @@ export default function CodePage() {
     if (!socket) return;
 
     const joinCode = getCookie("quiz_joincode");
+    const participantId = getCookie("quiz_participantId");
 
-    if (!joinCode) return;
+    if (!joinCode || !participantId) {
+      console.warn("Identitas peserta tidak lengkap, tidak dapat memulihkan koneksi quiz");
+      return;
+    }
 
-    // Emit get waiting room
-    socket.emit("participant:get_waiting_room", {
-      joinCode,
-    });
+    // Socket.IO selalu memberikan socket.id baru setelah refresh/reconnect.
+    // Daftarkan kembali identitas peserta yang stabil agar server dapat
+    // menghubungkan socket baru ke participant dan room yang sama.
+    const syncParticipantSession = () => {
+      socket.emit("participant:get_waiting_room", {
+        joinCode,
+        participantId,
+        sessionId: String(sessionId),
+      });
+    };
 
     // Listen update waiting room
     const handleWaitingRoomUpdated = (data: {
@@ -345,7 +355,14 @@ export default function CodePage() {
       }
     };
 
+    socket.on("connect", syncParticipantSession);
     socket.on("waiting_room:updated", handleWaitingRoomUpdated);
+
+    // Saat effect dipasang, socket biasanya sudah connected sehingga event
+    // `connect` sebelumnya telah lewat.
+    if (socket.connected) {
+      syncParticipantSession();
+    }
 
     socket.on('quiz:started', (data) => {
       if (data.message === 'Quiz started!') {
@@ -394,12 +411,13 @@ export default function CodePage() {
     });
 
     return () => {
+      socket.off("connect", syncParticipantSession);
       socket.off("waiting_room:updated", handleWaitingRoomUpdated);
       socket.off('quiz:started');
       socket.off('quiz:next_question');
       socket.off('quiz:ended');
     };
-  }, [socket]);
+  }, [socket, sessionId, storageKey]);
 
   return (
     <main className="min-h-screen w-full bg-[#291B13] flex justify-center">
