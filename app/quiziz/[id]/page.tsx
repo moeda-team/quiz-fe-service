@@ -61,12 +61,69 @@ export default function CodePage() {
   const [isEssayLocked, setIsEssayLocked] = useState(false);
   const [puzzleOrder, setPuzzleOrder] = useState<number[]>([]);
   const [answerStartTime, setAnswerStartTime] = useState<number>(0);
+  const [timerEndTime, setTimerEndTime] = useState<number>(0);
+  const [hasRestoredState, setHasRestoredState] = useState(false);
   const [isleaderboard, setIsLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardPayload[]>([]);
   
   const roomDataRef = useRef<WaitingRoomData | null>(null);
   const questionRef = useRef<Question | null>(null);
   const answerStartTimeRef = useRef<number>(0);
+  const textAnswerRef = useRef("");
+  const puzzleOrderRef = useRef<number[]>([]);
+  const storageKey = `quiz_participant_state_${String(sessionId)}`;
+
+  // Restore the active quiz before socket updates arrive after a refresh.
+  useEffect(() => {
+    const restoreTimer = window.setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const state = JSON.parse(saved);
+          setRoomData(state.roomData ?? null);
+          setIsStart(Boolean(state.isStart));
+          setQuestion(state.question ?? null);
+          setCurrentQuestion(state.currentQuestion ?? 0);
+          settotalQuestions(state.totalQuestions ?? 0);
+          setSelectedOption(state.selectedOption ?? null);
+          selectedOptionRef.current = state.selectedOption ?? null;
+          setTextAnswer(state.textAnswer ?? "");
+          textAnswerRef.current = state.textAnswer ?? "";
+          setIsEssayLocked(Boolean(state.isEssayLocked));
+          setPuzzleOrder(state.puzzleOrder ?? []);
+          puzzleOrderRef.current = state.puzzleOrder ?? [];
+          setAnswerStartTime(state.answerStartTime ?? Date.now());
+          setTimerEndTime(state.timerEndTime ?? 0);
+        }
+      } catch (error) {
+        console.warn("State quiz tersimpan tidak dapat dibaca:", error);
+        localStorage.removeItem(storageKey);
+      } finally {
+        setHasRestoredState(true);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!hasRestoredState) return;
+    localStorage.setItem(storageKey, JSON.stringify({
+      roomData,
+      isStart,
+      question,
+      currentQuestion,
+      totalQuestions,
+      selectedOption,
+      textAnswer,
+      isEssayLocked,
+      puzzleOrder,
+      answerStartTime,
+      timerEndTime,
+    }));
+  }, [hasRestoredState, storageKey, roomData, isStart, question, currentQuestion,
+    totalQuestions, selectedOption, textAnswer, isEssayLocked, puzzleOrder,
+    answerStartTime, timerEndTime]);
 
   // sync ref setiap kali state berubah
   useEffect(() => {
@@ -84,6 +141,14 @@ export default function CodePage() {
   useEffect(() => {
     answerStartTimeRef.current = answerStartTime;
   }, [answerStartTime]);
+
+  useEffect(() => {
+    textAnswerRef.current = textAnswer;
+  }, [textAnswer]);
+
+  useEffect(() => {
+    puzzleOrderRef.current = puzzleOrder;
+  }, [puzzleOrder]);
 
   const [playerStyles, setPlayerStyles] = useState<Array<{
     id: string;
@@ -202,12 +267,12 @@ export default function CodePage() {
         answerPayload.optionId = selectedOptionRef.current;
       }
     } else if (currentQuestion.type === "ESSAY") {
-      if (textAnswer.trim()) {
-        answerPayload.textAnswer = textAnswer;
+      if (textAnswerRef.current.trim()) {
+        answerPayload.textAnswer = textAnswerRef.current;
       }
     } else if (currentQuestion.type === "PUZZLE") {
-      if (puzzleOrder.length > 0) {
-        answerPayload.puzzleOrder = puzzleOrder;
+      if (puzzleOrderRef.current.length > 0) {
+        answerPayload.puzzleOrder = puzzleOrderRef.current;
       }
     }
 
@@ -218,7 +283,9 @@ export default function CodePage() {
     setSelectedOption(null);
     selectedOptionRef.current = null; // reset ref juga
     setTextAnswer("");
+    textAnswerRef.current = "";
     setPuzzleOrder([]);
+    puzzleOrderRef.current = [];
     setIsEssayLocked(false);
     setLoading(true);
 
@@ -290,11 +357,11 @@ export default function CodePage() {
         setSelectedOption(null);
         setTextAnswer('');
         setPuzzleOrder([]);
-        setAnswerStartTime(Date.now());
-        setTimeout(() => {
-          setIsStart(true);
-          setLoading(false);
-        }, 1500);
+        const now = Date.now();
+        setAnswerStartTime(now);
+        setTimerEndTime(now + (data.firstQuestion?.timeLimit ?? 30) * 1000);
+        setIsStart(true);
+        setLoading(false);
       }
     });
 
@@ -302,17 +369,16 @@ export default function CodePage() {
       console.log(selectedOption)
       submitAnswer();
       if (data) {
-        setLoading(true);
         settotalQuestions(data.totalQuestions);
         setCurrentQuestion(prev => prev + 1);
         setQuestion(data.question);
         setTextAnswer('');
         setPuzzleOrder([]);
-        setAnswerStartTime(Date.now());
-        setTimeout(() => {
-          setIsStart(true);
-          setLoading(false);
-        }, 1500);
+        const now = Date.now();
+        setAnswerStartTime(now);
+        setTimerEndTime(now + (data.question?.timeLimit ?? 30) * 1000);
+        setIsStart(true);
+        setLoading(false);
       }
     });
 
@@ -321,6 +387,7 @@ export default function CodePage() {
       setLeaderboard(data.leaderboard)
       setIsLeaderboard(true)
       setLoading(false);
+      localStorage.removeItem(storageKey);
       // setTimeout(() => {
       //   router.push(`/quiziz`);
       // }, 1500);
@@ -388,7 +455,11 @@ export default function CodePage() {
                       backgroundRepeat: 'no-repeat',
                     }}
                   >
-                    <QuizTimer timeLimit={question?.timeLimit ?? 30} onTimeUp={submitAnswer} />
+                    <QuizTimer
+                      timeLimit={question?.timeLimit ?? 30}
+                      endTime={timerEndTime || undefined}
+                      onTimeUp={submitAnswer}
+                    />
                   </div>
                 </div>
 

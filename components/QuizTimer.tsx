@@ -1,50 +1,40 @@
 "use client";
 
-import { useLayoutEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface QuizTimerProps {
   timeLimit: number;
+  endTime?: number;
   onTimeUp?: () => void;
 }
 
-export default function QuizTimer({ timeLimit, onTimeUp }: QuizTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(0);
-  const timeLimitRef = useRef(0);
-  const shouldResetRef = useRef(false);
+export default function QuizTimer({ timeLimit, endTime, onTimeUp }: QuizTimerProps) {
+  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, timeLimit));
+  const onTimeUpRef = useRef(onTimeUp);
   const hasCalledTimeUpRef = useRef(false);
 
-  useLayoutEffect(() => {
-    if (timeLimit <= 0) {
-      timeLimitRef.current = 0;
-      shouldResetRef.current = false;
-      hasCalledTimeUpRef.current = false;
-      return;
-    }
+  useEffect(() => {
+    onTimeUpRef.current = onTimeUp;
+  }, [onTimeUp]);
 
-    timeLimitRef.current = timeLimit;
-    shouldResetRef.current = true;
+  useEffect(() => {
+    const deadline = endTime ?? Date.now() + Math.max(0, timeLimit) * 1000;
     hasCalledTimeUpRef.current = false;
 
-    setTimeLeft(timeLimit);
+    const updateTimer = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0 && !hasCalledTimeUpRef.current) {
+        hasCalledTimeUpRef.current = true;
+        onTimeUpRef.current?.();
+      }
+    };
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (shouldResetRef.current) {
-          shouldResetRef.current = false;
-          hasCalledTimeUpRef.current = false;
-          return timeLimitRef.current;
-        }
-        const newTime = Math.max(0, prev - 1);
-        if (newTime === 0 && !hasCalledTimeUpRef.current && onTimeUp) {
-          hasCalledTimeUpRef.current = true;
-          onTimeUp();
-        }
-        return newTime;
-      });
-    }, 1000);
+    updateTimer();
+    const timer = setInterval(updateTimer, 250);
 
     return () => clearInterval(timer);
-  }, [timeLimit, onTimeUp]);
+  }, [timeLimit, endTime]);
 
   return <span>{timeLeft}</span>;
 }
