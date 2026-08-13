@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import Swal from 'sweetalert2';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -61,6 +61,31 @@ interface ApiResponse<T> {
   status?: number;
   success?: boolean;
 }
+
+const normalizeQuestionOrders = (items: Question[]): Question[] =>
+  items
+    .map((question, originalIndex) => ({ question, originalIndex }))
+    .sort((a, b) => {
+      const orderA = Number.isFinite(a.question.order) && a.question.order > 0
+        ? a.question.order
+        : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(b.question.order) && b.question.order > 0
+        ? b.question.order
+        : Number.MAX_SAFE_INTEGER;
+      return orderA - orderB || a.originalIndex - b.originalIndex;
+    })
+    .map(({ question }, index) => ({ ...question, order: index + 1 }));
+
+const placeQuestionAtOrder = (
+  items: Question[],
+  question: Question,
+  requestedOrder: number
+): Question[] => {
+  const remaining = normalizeQuestionOrders(items.filter(item => item.id !== question.id));
+  const targetIndex = Math.min(Math.max(requestedOrder, 1), remaining.length + 1) - 1;
+  remaining.splice(targetIndex, 0, question);
+  return remaining.map((item, index) => ({ ...item, order: index + 1 }));
+};
 
 // Validation function for question payload based on type
 const validateQuestionPayload = (payload: QuestionPayload, type: string): { valid: boolean; errors: string[] } => {
@@ -176,6 +201,10 @@ export default function EditQuizPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [currentMode, setCurrentMode] = useState<'edit' | 'buat_soal'>('edit');
   const [questions, setQuestions] = useState<Question[]>([]);
+  const getNextQuestionOrder = () =>
+    questions.reduce((highestOrder, question) =>
+      Math.max(highestOrder, Number.isFinite(question.order) ? question.order : 0), 0
+    ) + 1;
   const [questionImageUploading, setQuestionImageUploading] = useState(false);
   const [questionImageUrl, setQuestionImageUrl] = useState("");
     
@@ -185,6 +214,21 @@ export default function EditQuizPage() {
   
   // State untuk tracking mode edit soal
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+
+  const syncChangedQuestionOrders = useCallback(async (
+    nextQuestions: Question[],
+    previousQuestions: Question[],
+    skipQuestionId?: string
+  ) => {
+    const previousOrders = new Map(previousQuestions.map(item => [item.id, item.order]));
+    const changedQuestions = nextQuestions.filter(item =>
+      item.id !== skipQuestionId && previousOrders.get(item.id) !== item.order
+    );
+
+    await Promise.all(changedQuestions.map(item =>
+      updateQuestion(params.id as string, item.id, { order: item.order })
+    ));
+  }, [params.id, updateQuestion]);
 
   // State for drag-and-drop reorder (PUZZLE)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -324,7 +368,16 @@ export default function EditQuizPage() {
         
         // Set questions state
         if (quizData.questions && Array.isArray(quizData.questions)) {
-          setQuestions(quizData.questions as Question[]);
+          const receivedQuestions = quizData.questions as Question[];
+          const orderedQuestions = normalizeQuestionOrders(receivedQuestions);
+          setQuestions(orderedQuestions);
+
+          try {
+            await syncChangedQuestionOrders(orderedQuestions, receivedQuestions);
+          } catch (error) {
+            console.error("Failed to normalize question orders:", error);
+            toast.warning("Urutan soal tampil rapi, tetapi belum seluruhnya tersimpan ke server");
+          }
         }
 
         // Map API response to form values
@@ -350,7 +403,7 @@ export default function EditQuizPage() {
     if (themes.length > 0) {
       fetchQuiz();
     }
-  }, [params.id, getQuizById, form, themes]);
+  }, [params.id, getQuizById, form, themes, syncChangedQuestionOrders]);
 
   // Set default theme when themes are loaded and no quiz data is loaded
   useEffect(() => {
@@ -483,7 +536,7 @@ export default function EditQuizPage() {
       text: "",
       type: "MULTIPLE_CHOICE",
       timeLimit: 30,
-      order: questions.length + 1,
+      order: getNextQuestionOrder(),
       options: [
         { text: "", points: 10, isCorrect: true, order: 1, imageUrl: "" },
         { text: "", points: 0, isCorrect: false, order: 2, imageUrl: "" }
@@ -567,8 +620,14 @@ export default function EditQuizPage() {
     if (result.isConfirmed) {
       try {
         await deleteQuestion(params.id as string, id);
-        const newQuestions = questions.filter(q => q.id !== id);
+        const newQuestions = normalizeQuestionOrders(questions.filter(q => q.id !== id));
         setQuestions(newQuestions);
+        try {
+          await syncChangedQuestionOrders(newQuestions, questions);
+        } catch (error) {
+          console.error("Failed to compact question orders after delete:", error);
+          toast.warning("Soal terhapus, tetapi pembaruan urutan ke server belum lengkap");
+        }
         toast.success("Soal berhasil dihapus");
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -654,12 +713,12 @@ export default function EditQuizPage() {
     }
   };
 
-  const handleResetForm = () => {
+  const handleResetForm = (nextOrder = getNextQuestionOrder()) => {
     setNewQuestion({
       text: "",
       type: "TRUE_FALSE",
       timeLimit: 30,
-      order: questions.length + 1,
+      order: nextOrder,
       imageUrl: "",
       musicFile: "",
       options: [
@@ -702,9 +761,11 @@ export default function EditQuizPage() {
 
       // Build type-specific payload
       let questionPayload: QuestionPayload;
+      const maximumOrder = editingQuestionId ? questions.length : questions.length + 1;
+      const requestedOrder = Math.min(Math.max(newQuestion.order || maximumOrder, 1), maximumOrder);
       const basePayload: BaseQuestionPayload = {
         quizId: params.id as string,
-        order: newQuestion.order || questions.length + 1,
+        order: requestedOrder,
         text: newQuestion.text,
         type: newQuestion.type,
         timeLimit: newQuestion.timeLimit,
@@ -794,11 +855,13 @@ export default function EditQuizPage() {
         return;
       }
       
+      let nextQuestionOrder = questions.length + 1;
+
       if (editingQuestionId) {
         // Update existing question
         try {
           // Call API to update question
-          const response = await updateQuestion(params.id as string, editingQuestionId, questionPayload);
+          await updateQuestion(params.id as string, editingQuestionId, questionPayload);
           
           const updatedQuestion: Question = {
             id: editingQuestionId,
@@ -810,13 +873,19 @@ export default function EditQuizPage() {
               points: option.points ?? 0
             })),
             correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
-            order: questions.find(q => q.id === editingQuestionId)?.order || questions.length + 1,
+            order: requestedOrder,
             timeLimit: newQuestion.timeLimit,
             imageUrl: newQuestion.imageUrl
           };
 
-          // Update question in the list
-          setQuestions(questions.map(q => q.id === editingQuestionId ? updatedQuestion : q));
+          const reorderedQuestions = placeQuestionAtOrder(questions, updatedQuestion, requestedOrder);
+          setQuestions(reorderedQuestions);
+          try {
+            await syncChangedQuestionOrders(reorderedQuestions, questions, editingQuestionId);
+          } catch (error) {
+            console.error("Failed to sync shifted question orders:", error);
+            toast.warning("Soal tersimpan, tetapi urutan soal lain belum seluruhnya tersinkron");
+          }
           
           toast.success("Soal berhasil diperbarui!");
         } catch (error) {
@@ -840,12 +909,20 @@ export default function EditQuizPage() {
               points: option.points ?? 0
             })),
             correctAnswer: newQuestion.options.find(opt => opt.isCorrect)?.text || "",
-            order: questions.length + 1,
+            order: requestedOrder,
             timeLimit: newQuestion.timeLimit,
             imageUrl: newQuestion.imageUrl
           };
 
-          setQuestions([...questions, tempQuestion]);
+          const reorderedQuestions = placeQuestionAtOrder(questions, tempQuestion, requestedOrder);
+          setQuestions(reorderedQuestions);
+          nextQuestionOrder = reorderedQuestions.length + 1;
+          try {
+            await syncChangedQuestionOrders(reorderedQuestions, questions, tempQuestion.id);
+          } catch (error) {
+            console.error("Failed to sync shifted question orders:", error);
+            toast.warning("Soal dibuat, tetapi urutan soal lain belum seluruhnya tersinkron");
+          }
           
           toast.success("Soal berhasil dibuat!");
         } catch (error) {
@@ -855,7 +932,7 @@ export default function EditQuizPage() {
         }
       }
 
-      handleResetForm();
+      handleResetForm(nextQuestionOrder);
     } catch (error) {
       console.error("Error creating question:", error);
       toast.error("Gagal membuat soal. Silakan coba lagi.");
@@ -1154,7 +1231,7 @@ export default function EditQuizPage() {
                     <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
                       {questions.map((question, index) => (
                         <div 
-                          key={index} 
+                          key={question.id}
                           className="bg-tranparent relative rounded-lg p-2 sm:p-3 sm:pr-6 border border-[#C9750A] min-h-20 sm:min-h-24 max-h-24 flex items-center w-20 sm:w-24 lg:w-full justify-center flex-shrink-0"
                           style={question.imageUrl ? {
                             backgroundImage: `url(${question.imageUrl})`,
@@ -1163,6 +1240,9 @@ export default function EditQuizPage() {
                             backgroundRepeat: 'no-repeat'
                           } : {}}
                         >
+                          <span className="absolute left-1 top-1 rounded bg-[#C9750A] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            #{question.order || index + 1}
+                          </span>
                           {!question.imageUrl && (
                             <img src="/empty-question.svg" alt="Question" className="h-12 sm:h-18"/>
                           )}
@@ -1496,8 +1576,15 @@ export default function EditQuizPage() {
                           <input
                             type="number"
                             min="1"
+                            max={editingQuestionId ? Math.max(questions.length, 1) : getNextQuestionOrder()}
                             value={newQuestion.order}
-                            onChange={(e) => setNewQuestion({...newQuestion, order: parseInt(e.target.value) || 1})}
+                            onChange={(e) => {
+                              const parsedOrder = Number.parseInt(e.target.value, 10);
+                              setNewQuestion({
+                                ...newQuestion,
+                                order: Number.isFinite(parsedOrder) ? parsedOrder : getNextQuestionOrder()
+                              });
+                            }}
                             className="w-full bg-white border-[#C9750A] border-2 h-10 rounded-lg px-3 text-black"
                           />
                         </div>
