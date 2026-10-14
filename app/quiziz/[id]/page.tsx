@@ -9,7 +9,6 @@ import Loading from "@/components/button/Loading";
 import { useParams, useRouter } from "next/navigation";
 import { Question } from "@/hooks/useQuestions";
 import QuizTimer from "@/components/QuizTimer";
-import { apiGet } from "@/lib/api";
 
 interface Player {
   id: string;
@@ -85,7 +84,7 @@ export default function CodePage() {
   const [mobileDraggedPuzzleIndex, setMobileDraggedPuzzleIndex] = useState<number | null>(null);
   
   const roomDataRef = useRef<WaitingRoomData | null>(null);
-  const fetchedInstructionsForQuizRef = useRef<string | null>(null);
+  const instructionsReceivedRef = useRef(false);
   const questionRef = useRef<Question | null>(null);
   const answerStartTimeRef = useRef<number>(0);
   const textAnswerRef = useRef("");
@@ -203,25 +202,10 @@ export default function CodePage() {
   useEffect(() => {
     const id = String(sessionId);
     const savedInstructions = sessionStorage.getItem(`quiz_instructions_${id}`) ?? "";
-    const restoreTimer = window.setTimeout(() => setQuizInstructions(savedInstructions), 0);
-    // A direct /quiziz/{quizId} visit has no join cookie; after joining, [id] is a session ID.
-    const quizId = sessionStorage.getItem(`quiz_id_${id}`)
-      ?? (document.cookie.split('; ').some((cookie) => cookie.startsWith(`quiz_session_${id}=`)) ? null : id);
-    if (!quizId) return () => window.clearTimeout(restoreTimer);
-
-    let active = true;
-    fetchedInstructionsForQuizRef.current = quizId;
-    apiGet<{ data?: { instructions?: string }; instructions?: string }>(`/quizzes/${encodeURIComponent(quizId)}`)
-      .then((response) => {
-        if (!active) return;
-        window.clearTimeout(restoreTimer);
-        setQuizInstructions(response.data?.instructions ?? response.instructions ?? "");
-      })
-      .catch((error) => {
-        fetchedInstructionsForQuizRef.current = null;
-        console.warn("Instruksi kuis tidak tersedia:", error);
-      });
-    return () => { active = false; window.clearTimeout(restoreTimer); };
+    const restoreTimer = window.setTimeout(() => {
+      if (!instructionsReceivedRef.current) setQuizInstructions(savedInstructions);
+    }, 0);
+    return () => window.clearTimeout(restoreTimer);
   }, [sessionId]);
 
   // sync ref setiap kali state berubah
@@ -428,21 +412,9 @@ export default function CodePage() {
       if (data.sessionId && data.sessionId !== String(sessionId)) return;
       const instructions = data.quiz?.instructions ?? data.session?.quiz?.instructions ?? data.instructions;
       if (typeof instructions === "string") {
+        instructionsReceivedRef.current = true;
         sessionStorage.setItem(`quiz_instructions_${String(sessionId)}`, instructions);
         setQuizInstructions(instructions);
-      }
-      const quizId = data.quizId ?? data.quiz?.id ?? data.session?.quizId ?? data.session?.quiz?.id;
-      if (quizId) sessionStorage.setItem(`quiz_id_${String(sessionId)}`, quizId);
-      if (quizId && typeof instructions !== "string" && fetchedInstructionsForQuizRef.current !== quizId) {
-        fetchedInstructionsForQuizRef.current = quizId;
-        apiGet<{ data?: { instructions?: string }; instructions?: string }>(`/quizzes/${encodeURIComponent(quizId)}`)
-          .then((response) => {
-            setQuizInstructions(response.data?.instructions ?? response.instructions ?? "");
-          })
-          .catch((error) => {
-            fetchedInstructionsForQuizRef.current = null;
-            console.warn("Instruksi kuis tidak tersedia:", error);
-          });
       }
       // Update room data with new participants
       if (data.participants) {
@@ -570,6 +542,14 @@ export default function CodePage() {
 
         {!isleaderboard ? 
           <div className={`flex w-full flex-col items-center justify-start rounded-2xl py-2 ${isStart ? 'h-[calc(100vh-200px)]' : 'min-h-[calc(100dvh-200px)]'}`}>
+            {!isStart && quizInstructions.trim() && (
+              <section aria-label="Instruksi Quiz" className="relative z-10 mb-3 w-full rounded-2xl border-2 border-[#9a6b32] bg-[#f7ecd1]/95 px-4 py-3 text-[#4d2f14] shadow-[0_6px_0_#6d4324,0_12px_20px_rgba(41,27,19,0.2)] sm:px-5">
+                <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#75461f] sm:text-sm">✦ Instruksi Quiz ✦</h2>
+                <div className="max-h-[30dvh] overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed sm:text-sm">
+                  {instructionContent(quizInstructions)}
+                </div>
+              </section>
+            )}
             
             {/* Players Area */}
             {isStart ? (
@@ -794,14 +774,6 @@ export default function CodePage() {
                 ))}
               </div>
             }
-            {!isStart && quizInstructions.trim() && (
-              <section aria-label="Instruksi Quiz" className="relative z-10 mt-3 w-full rounded-2xl border-2 border-[#9a6b32] bg-[#f7ecd1]/95 px-4 py-3 text-[#4d2f14] shadow-[0_6px_0_#6d4324,0_12px_20px_rgba(41,27,19,0.2)] sm:px-5">
-                <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#75461f] sm:text-sm">✦ Instruksi Quiz ✦</h2>
-                <div className="max-h-[30dvh] overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed sm:text-sm">
-                  {instructionContent(quizInstructions)}
-                </div>
-              </section>
-            )}
     
             <style>{`
               @keyframes float {

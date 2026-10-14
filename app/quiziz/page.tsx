@@ -73,10 +73,6 @@ export default function CodePage() {
 
         socket.on('participant:joined_success', (data) => {
           console.log('Participant joined successfully:', data);
-          const quizId = data.quizId ?? data.quiz?.id ?? data.session?.quizId ?? data.session?.quiz?.id;
-          if (quizId) {
-            sessionStorage.setItem(`quiz_id_${data.sessionId}`, String(quizId));
-          }
           const instructions = data.quiz?.instructions ?? data.session?.quiz?.instructions ?? data.instructions;
           if (typeof instructions === 'string') {
             sessionStorage.setItem(`quiz_instructions_${data.sessionId}`, instructions);
