@@ -137,6 +137,7 @@ export interface QuizDetailFromStorage {
   id: string;
   title: string;
   description?: string;
+  instructions?: string;
   coverImage?: string;
   backgroundMusic?: MusicData;
   questions: QuizQuestion[];

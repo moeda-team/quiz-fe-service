@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ export default function WaitingRoomPage() {
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const [showFullInstructions, setShowFullInstructions] = useState(false);
   const sessionCreationAttempted = useRef(false);
   const [particleStyles, setParticleStyles] = useState<Array<{
     left: string;
@@ -236,27 +237,50 @@ export default function WaitingRoomPage() {
     return () => clearTimeout(t);
   }, [roomData?.players]);
 
-  // Load quiz detail from localStorage and set background music
+  const quizDetail = useMemo<QuizDetailFromStorage | null>(() => {
+    if (typeof window === 'undefined') return null;
+
+    const storageKey = `quiz_detail_${quizId}`;
+    const storedQuiz = window.localStorage.getItem(storageKey) || window.localStorage.getItem('detail');
+
+    if (!storedQuiz) {
+      return null;
+    }
+
+    try {
+      const parsedQuiz = JSON.parse(storedQuiz) as Partial<QuizDetailFromStorage> & {
+        instructions?: string;
+        description?: string;
+      };
+
+      return {
+        id: String(parsedQuiz.id ?? quizId),
+        title: parsedQuiz.title ?? 'Quiz',
+        description: parsedQuiz.description,
+        instructions: parsedQuiz.instructions || parsedQuiz.description || '',
+        coverImage: parsedQuiz.coverImage,
+        backgroundMusic: parsedQuiz.backgroundMusic,
+        questions: parsedQuiz.questions ?? [],
+        totalQuestions: parsedQuiz.totalQuestions,
+        author: parsedQuiz.author,
+      };
+    } catch (error) {
+      console.error('Error parsing quiz detail from localStorage:', error);
+      return null;
+    }
+  }, [quizId]);
+
   useEffect(() => {
     const storageKey = `quiz_detail_${quizId}`;
-    const storedQuiz = localStorage.getItem(storageKey);
-    
-    if (storedQuiz) {
-      try {
-        const quizDetail: QuizDetailFromStorage = JSON.parse(storedQuiz);
-        if (quizDetail.backgroundMusic?.fileUrl) {
-          setQuizMusic(quizDetail.backgroundMusic.fileUrl);
-        } else {
-          setQuizMusic('/media/default.mp3');
-        }
-      } catch (error) {
-        console.error('Error parsing quiz detail from localStorage:', error);
-        setQuizMusic('/media/default.mp3');
-      }
-    } else {
-      setQuizMusic('/media/default.mp3');
+
+    if (quizDetail) {
+      window.localStorage.setItem(storageKey, JSON.stringify(quizDetail));
+      setQuizMusic(quizDetail.backgroundMusic?.fileUrl || '/media/default.mp3');
+      return;
     }
-  }, [quizId, setQuizMusic]);
+
+    setQuizMusic('/media/default.mp3');
+  }, [quizDetail, quizId, setQuizMusic]);
 
   // Cookie utility functions
   const setCookie = (name: string, value: string, days: number = 1) => {
@@ -555,11 +579,29 @@ export default function WaitingRoomPage() {
           <span className="relative z-10 text-amber-900 mb-2" style={{ fontFamily: 'Varela Round, serif' }}>{roomData.roomCode}</span>
         </div>
 
+        {quizDetail?.instructions ? (
+          <div
+            onClick={() => setShowFullInstructions((prev) => !prev)}
+            className="fixed bottom-0 left-0 right-0 z-30 w-full overflow-hidden border border-white/30 border-b-0 bg-white/10 backdrop-blur-sm p-4 sm:p-5 pr-16 text-white shadow-xl cursor-pointer active:scale-[0.99] transition-transform"
+          >
+            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-200 mb-2">
+              Instruksi Quiz
+            </p>
+            <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-line ${showFullInstructions ? '' : 'line-clamp-2'}`} style={{ fontFamily: 'Varela Round, serif' }}>
+              {quizDetail.instructions}
+            </p>
+          </div>
+        ) : (
+          <div className="fixed bottom-0 left-1/2 z-30 w-[92%] max-w-2xl -translate-x-1/2 overflow-hidden rounded-t-[18px] rounded-b-none border border-dashed border-white/40 border-b-0 bg-white/5 p-4 text-white/80 text-xs sm:text-sm">
+            Instruksi kuis belum tersedia.
+          </div>
+        )}
+
         {/* Wooden Start Button */}
         <Button 
           onClick={handleStartQuiz}
           disabled={isStarting || roomData.players.length === 0}
-          className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base"
+          className="relative hover:scale-105 transition-transform hover:bg-transparent w-full h-10 bg-transparent border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base mt-4"
           style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
         >
           {isStarting ? (
