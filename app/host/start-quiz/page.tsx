@@ -170,8 +170,15 @@ export default function DashboardAdminPage() {
                           key={`${quiz.id}-${index}`}
                           className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C9750A] hover:border-[#C9750A] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col h-full"
                           onClick={() => {
-                            router.push(`/host/start-quiz/${quiz.id}/history`)
-                            localStorage.setItem('detail', JSON.stringify(quiz))
+                            const quizDetail = {
+                              ...quiz,
+                              id: String(quiz.id),
+                              instructions: quiz.instructions || quiz.description || "",
+                            };
+
+                            router.push(`/host/start-quiz/${quiz.id}/history`);
+                            localStorage.setItem('detail', JSON.stringify(quizDetail));
+                            localStorage.setItem(`quiz_detail_${quiz.id}`, JSON.stringify(quizDetail));
                           }}
                         >
                           <div className="aspect-video bg-linear-to-br from-amber-100 to-amber-300 flex items-center justify-center relative overflow-hidden">

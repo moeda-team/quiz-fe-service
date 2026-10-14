@@ -65,6 +65,9 @@ export default function CodePage() {
   const [hasRestoredState, setHasRestoredState] = useState(false);
   const [isleaderboard, setIsLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardPayload[]>([]);
+  const [quizInstructions, setQuizInstructions] = useState<string>("");
+  const [showFullInstructions, setShowFullInstructions] = useState(false);
+  const [mobileDraggedPuzzleIndex, setMobileDraggedPuzzleIndex] = useState<number | null>(null);
   
   const roomDataRef = useRef<WaitingRoomData | null>(null);
   const questionRef = useRef<Question | null>(null);
@@ -72,6 +75,62 @@ export default function CodePage() {
   const textAnswerRef = useRef("");
   const puzzleOrderRef = useRef<number[]>([]);
   const storageKey = `quiz_participant_state_${String(sessionId)}`;
+
+  const currentQuestionOptions = question?.type === 'PUZZLE'
+    ? (question.puzzleItems ?? question.options ?? [])
+    : (question?.options ?? []);
+
+  const createSeededShuffle = (seed: string, size: number) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) {
+      hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+
+    const order = Array.from({ length: size }, (_, index) => index);
+    const randomFn = () => {
+      hash ^= hash << 13;
+      hash ^= hash >>> 7;
+      hash ^= hash << 17;
+      return (hash >>> 0) / 4294967296;
+    };
+
+    for (let i = order.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(randomFn() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+
+    return order;
+  };
+
+  const puzzleDisplayOrder = puzzleOrder.length > 0
+    ? puzzleOrder
+    : currentQuestionOptions.map((_, index) => index);
+
+  const handlePuzzleReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+
+    const newOrder = [...puzzleDisplayOrder];
+    const [movedItem] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, movedItem);
+    setPuzzleOrder(newOrder);
+    puzzleOrderRef.current = newOrder;
+  };
+
+  useEffect(() => {
+    if (question?.type !== 'PUZZLE') {
+      setPuzzleOrder([]);
+      puzzleOrderRef.current = [];
+      return;
+    }
+
+    if (puzzleOrder.length === 0 && currentQuestionOptions.length > 0) {
+      const participantId = getCookie('quiz_participantId') || `guest-${String(sessionId)}`;
+      const seed = `${participantId}-${question.id}-${question.order}`;
+      const initialOrder = createSeededShuffle(seed, currentQuestionOptions.length);
+      setPuzzleOrder(initialOrder);
+      puzzleOrderRef.current = initialOrder;
+    }
+  }, [question, currentQuestionOptions, puzzleOrder.length, sessionId]);
 
   // Restore the active quiz before socket updates arrive after a refresh.
   useEffect(() => {
@@ -124,6 +183,33 @@ export default function CodePage() {
   }, [hasRestoredState, storageKey, roomData, isStart, question, currentQuestion,
     totalQuestions, selectedOption, textAnswer, isEssayLocked, puzzleOrder,
     answerStartTime, timerEndTime]);
+
+  useEffect(() => {
+    try {
+      const fallbackStorageKeys = ['detail', 'quiz_detail_last'];
+      for (const key of fallbackStorageKeys) {
+        const saved = localStorage.getItem(key);
+        if (!saved) continue;
+
+        const parsed = JSON.parse(saved) as { instructions?: string; description?: string };
+        const instructionText = parsed.instructions || parsed.description;
+
+        if (instructionText) {
+          setQuizInstructions(instructionText);
+          return;
+        }
+      }
+
+      setQuizInstructions(
+        'Baca instruksi berikut sebelum mulai: pilih jawaban dengan tepat, kerjakan sesuai waktu yang tersedia, dan pastikan koneksi internet stabil.'
+      );
+    } catch (error) {
+      console.warn('Instruksi kuis tidak tersedia:', error);
+      setQuizInstructions(
+        'Baca instruksi berikut sebelum mulai: pilih jawaban dengan tepat, kerjakan sesuai waktu yang tersedia, dan pastikan koneksi internet stabil.'
+      );
+    }
+  }, [sessionId]);
 
   // sync ref setiap kali state berubah
   useEffect(() => {
@@ -448,6 +534,19 @@ export default function CodePage() {
 
         {!isleaderboard ? 
           <div className="flex h-[calc(100vh-200px)] w-full flex-col items-center justify-start rounded-2xl py-2">
+            {!isStart && (
+              <div
+                onClick={() => setShowFullInstructions((prev) => !prev)}
+                className="fixed bottom-0 left-0 right-0 z-30 w-full overflow-hidden border border-[#d6c7ab] border-b-0 bg-[#f7f1e3]/95 px-3 pb-2 pt-3 pr-14 text-left shadow-[0_-8px_22px_rgba(0,0,0,0.12)] backdrop-blur-sm cursor-pointer active:scale-[0.99] transition-transform"
+              >
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-[#6a4a1d] mb-2" style={{ fontFamily: 'Varela Round, serif' }}>
+                  Instruksi Quiz
+                </p>
+                <p className={`text-[11px] sm:text-sm leading-relaxed text-[#4d2f14] whitespace-pre-line ${showFullInstructions ? '' : 'line-clamp-2'}`} style={{ fontFamily: 'Varela Round, serif' }}>
+                  {quizInstructions}
+                </p>
+              </div>
+            )}
             
             {/* Players Area */}
             {isStart ? (
@@ -544,26 +643,72 @@ export default function CodePage() {
                         Susun potongan puzzle dalam urutan yang benar
                       </p>
                       <div className="gap-1 sm:gap-2 flex flex-col items-center justify-center w-full">
-                        {question?.options?.map((option, index) => (
-                          <div
-                            key={index}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer?.setData('index', index.toString());
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              const draggedIndex = parseInt(e.dataTransfer?.getData('index') || '0');
-                              const newOrder = [...puzzleOrder];
-                              [newOrder[draggedIndex], newOrder[index]] = [newOrder[index], newOrder[draggedIndex]];
-                              setPuzzleOrder(newOrder);
-                            }}
-                            onDragOver={(e) => e.preventDefault()}
-                            className="text-white text-xs sm:text-sm font-bold px-4 py-2 bg-[#5A3319] hover:bg-[#6B4429] min-w-fit sm:min-w-44 w-full rounded cursor-move hover:shadow-lg transition-all"
-                          >
-                            {String.fromCharCode(65 + index)}. {option.text}
-                          </div>
-                        ))}
+                        {puzzleDisplayOrder.map((orderIndex, index) => {
+                          const option = currentQuestionOptions[orderIndex];
+                          if (!option) return null;
+
+                          const moveUp = () => handlePuzzleReorder(index, Math.max(0, index - 1));
+                          const moveDown = () => handlePuzzleReorder(index, Math.min(puzzleDisplayOrder.length - 1, index + 1));
+
+                          return (
+                            <div
+                              key={`${orderIndex}-${index}`}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer?.setData('text/plain', String(index));
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const draggedIndex = Number(e.dataTransfer.getData('text/plain'));
+                                if (Number.isNaN(draggedIndex) || draggedIndex === index) return;
+                                handlePuzzleReorder(draggedIndex, index);
+                              }}
+                              onPointerDown={() => setMobileDraggedPuzzleIndex(index)}
+                              onPointerUp={() => {
+                                if (mobileDraggedPuzzleIndex !== null && mobileDraggedPuzzleIndex !== index) {
+                                  handlePuzzleReorder(mobileDraggedPuzzleIndex, index);
+                                }
+                                setMobileDraggedPuzzleIndex(null);
+                              }}
+                              onTouchStart={() => setMobileDraggedPuzzleIndex(index)}
+                              onTouchEnd={() => {
+                                if (mobileDraggedPuzzleIndex !== null && mobileDraggedPuzzleIndex !== index) {
+                                  handlePuzzleReorder(mobileDraggedPuzzleIndex, index);
+                                }
+                                setMobileDraggedPuzzleIndex(null);
+                              }}
+                              className={`flex items-center gap-2 text-white text-xs sm:text-sm font-bold px-3 py-2 bg-[#5A3319] hover:bg-[#6B4429] min-w-fit sm:min-w-44 w-full rounded cursor-move hover:shadow-lg transition-all ${mobileDraggedPuzzleIndex === index ? 'ring-2 ring-amber-300' : ''}`}
+                            >
+                              <span className="flex-1 text-left">{option.text}</span>
+                              <div className="flex flex-row gap-1 shrink-0 items-center justify-center self-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveUp();
+                                  }}
+                                  className="flex h-4 w-4 items-center justify-center rounded bg-amber-200 text-[#5A3319] font-bold text-[9px] leading-none"
+                                  aria-label="Naikkan urutan"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveDown();
+                                  }}
+                                  className="flex h-4 w-4 items-center justify-center rounded bg-amber-200 text-[#5A3319] font-bold text-[9px] leading-none"
+                                  aria-label="Turunkan urutan"
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (

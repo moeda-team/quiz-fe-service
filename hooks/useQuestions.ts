@@ -19,6 +19,14 @@ export interface Option {
   deletedBy?: string | null;
 }
 
+export interface PuzzleItem {
+  id?: string;
+  text: string;
+  correctOrder: number;
+  points?: number | null;
+  imageUrl?: string;
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -27,6 +35,7 @@ export interface Question {
   timeLimit?: number;
   imageUrl?: string;
   options?: Option[];
+  puzzleItems?: PuzzleItem[];
   musicFile?: string;
   correctAnswer?: string;
   answers?: Array<{

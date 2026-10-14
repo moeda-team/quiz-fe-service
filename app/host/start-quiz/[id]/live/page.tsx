@@ -22,6 +22,7 @@ export default function HistoryPage() {
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [questions, setQuestions] = useState<Question[] | []>([]);
+  const [livePuzzleOrder, setLivePuzzleOrder] = useState<number[]>([]);
   const [quizFinished, setQuizFinished] = useState(false);
   const [hasRestoredState, setHasRestoredState] = useState(false);
   const autoNextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -183,6 +184,22 @@ export default function HistoryPage() {
   const handleOptionClick = () => {
     handleNextQuestion();
   };
+
+  const currentQuestionData = questions?.[currentQuestion];
+  const liveQuestionOptions = currentQuestionData?.type === 'PUZZLE'
+    ? (currentQuestionData.puzzleItems ?? currentQuestionData.options ?? [])
+    : (currentQuestionData?.options ?? []);
+
+  useEffect(() => {
+    if (currentQuestionData?.type !== 'PUZZLE') {
+      setLivePuzzleOrder([]);
+      return;
+    }
+
+    if (livePuzzleOrder.length === 0 && liveQuestionOptions.length > 0) {
+      setLivePuzzleOrder(liveQuestionOptions.map((_, index) => index));
+    }
+  }, [currentQuestionData, liveQuestionOptions, livePuzzleOrder.length]);
   
   return (
       <div className="min-h-screen bg-linear-to-br from-orange-400 via-pink-500 to-purple-600 relative overflow-hidden">
@@ -264,14 +281,14 @@ export default function HistoryPage() {
 
                 {/* question */}
                 <div className="text-black text-sm sm:text-lg md:text-2xl w-full text-center font-bold md:mt-4">
-                  {questions?.[currentQuestion]?.text}
+                  {currentQuestionData?.text}
                 </div>
 
                 {/* image */}
-                {questions?.[currentQuestion]?.imageUrl && (
+                {currentQuestionData?.imageUrl && (
                   <div className="rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md h-[100px] sm:h-[180px] md:h-[200px]">
                     <img
-                      src={questions?.[currentQuestion]?.imageUrl || "/images/bg-main.webp"}
+                      src={currentQuestionData?.imageUrl || "/images/bg-main.webp"}
                       alt="Quiz"
                       className="object-cover object-center rounded-xl w-full h-full"
                     />
@@ -279,14 +296,48 @@ export default function HistoryPage() {
                 )}
                   
                 {/* select question */}
-                {questions?.[currentQuestion]?.type === 'ESSAY' ? (
+                {currentQuestionData?.type === 'ESSAY' ? (
                   <div className="w-[90%] sm:w-[85%] md:w-[80%]">
                     <p className="text-amber-900 text-sm sm:text-lg md:text-2xl font-bold text-center">Sedang dijawab peserta ...</p>
                   </div>
+                ) : currentQuestionData?.type === 'PUZZLE' ? (
+                  <div className="w-[90%] sm:w-[85%] md:w-[80%]">
+                    <div className="grid gap-2 sm:gap-3 md:gap-4 w-full">
+                      {livePuzzleOrder.map((orderIndex, index) => {
+                        const option = liveQuestionOptions[orderIndex];
+                        if (!option) return null;
+
+                        return (
+                          <div
+                            key={`${orderIndex}-${index}`}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer?.setData('text/plain', String(orderIndex));
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const draggedIndex = Number(e.dataTransfer.getData('text/plain'));
+                              if (Number.isNaN(draggedIndex) || draggedIndex === orderIndex) return;
+
+                              const nextOrder = [...livePuzzleOrder];
+                              const [movedItem] = nextOrder.splice(draggedIndex, 1);
+                              nextOrder.splice(index, 0, movedItem);
+                              setLivePuzzleOrder(nextOrder);
+                            }}
+                            className="text-white text-xs sm:text-sm md:text-lg font-bold bg-[#5A3319] p-1.5 sm:p-2 sm:px-3 md:px-4 rounded-lg cursor-move hover:bg-[#6B4429] transition-colors"
+                          >
+                            {String.fromCharCode(65 + index)}. {option.text}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-[90%] sm:w-[85%] md:w-[80%]">
-                    <div className={`grid gap-2 sm:gap-3 md:gap-4 w-full ${questions?.[currentQuestion]?.options?.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
-                    {questions?.[currentQuestion]?.options?.map((option, index) => (
+                    <div className={`grid gap-2 sm:gap-3 md:gap-4 w-full ${liveQuestionOptions.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                    {liveQuestionOptions.map((option, index) => (
                       <div
                         key={index}
                         className="text-white text-xs sm:text-sm md:text-lg font-bold bg-[#5A3319] p-1.5 sm:p-2 sm:px-3 md:px-4 rounded-lg cursor-pointer hover:bg-[#6B4429] transition-colors"
