@@ -204,7 +204,9 @@ export default function CodePage() {
     const id = String(sessionId);
     const savedInstructions = sessionStorage.getItem(`quiz_instructions_${id}`) ?? "";
     const restoreTimer = window.setTimeout(() => setQuizInstructions(savedInstructions), 0);
-    const quizId = sessionStorage.getItem(`quiz_id_${id}`);
+    // A direct /quiziz/{quizId} visit has no join cookie; after joining, [id] is a session ID.
+    const quizId = sessionStorage.getItem(`quiz_id_${id}`)
+      ?? (document.cookie.split('; ').some((cookie) => cookie.startsWith(`quiz_session_${id}=`)) ? null : id);
     if (!quizId) return () => window.clearTimeout(restoreTimer);
 
     let active = true;
@@ -420,15 +422,16 @@ export default function CodePage() {
       quizId?: string;
       instructions?: string;
       quiz?: { id?: string; instructions?: string };
+      session?: { quizId?: string; quiz?: { id?: string; instructions?: string } };
       participants: Array<{ id: string; name: string; profileCharacter?: { fullImage?: string } }>;
     }) => {
       if (data.sessionId && data.sessionId !== String(sessionId)) return;
-      const instructions = data.quiz?.instructions ?? data.instructions;
+      const instructions = data.quiz?.instructions ?? data.session?.quiz?.instructions ?? data.instructions;
       if (typeof instructions === "string") {
         sessionStorage.setItem(`quiz_instructions_${String(sessionId)}`, instructions);
         setQuizInstructions(instructions);
       }
-      const quizId = data.quizId ?? data.quiz?.id;
+      const quizId = data.quizId ?? data.quiz?.id ?? data.session?.quizId ?? data.session?.quiz?.id;
       if (quizId) sessionStorage.setItem(`quiz_id_${String(sessionId)}`, quizId);
       if (quizId && typeof instructions !== "string" && fetchedInstructionsForQuizRef.current !== quizId) {
         fetchedInstructionsForQuizRef.current = quizId;
