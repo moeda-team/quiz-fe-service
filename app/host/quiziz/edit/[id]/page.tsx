@@ -647,7 +647,17 @@ export default function EditQuizPage() {
       
       // Map question data to newQuestion state
       let mappedOptions;
-      if (questionToEdit.options && questionToEdit.options.length > 0) {
+      if (questionToEdit.type === "PUZZLE" && questionToEdit.puzzleItems?.length) {
+        mappedOptions = [...questionToEdit.puzzleItems]
+          .sort((a, b) => a.correctOrder - b.correctOrder)
+          .map((item, index) => ({
+            text: item.text,
+            points: item.points ?? 10,
+            isCorrect: true,
+            order: item.correctOrder || index + 1,
+            imageUrl: item.imageUrl || ""
+          }));
+      } else if (questionToEdit.options && questionToEdit.options.length > 0) {
         mappedOptions = questionToEdit.options.map((option, index) => ({
           text: option.text,
           points: option.points,
