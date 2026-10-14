@@ -73,6 +73,14 @@ export default function CodePage() {
 
         socket.on('participant:joined_success', (data) => {
           console.log('Participant joined successfully:', data);
+          const quizId = data.quizId ?? data.quiz?.id;
+          if (quizId) {
+            sessionStorage.setItem(`quiz_id_${data.sessionId}`, String(quizId));
+          }
+          const instructions = data.quiz?.instructions ?? data.instructions;
+          if (typeof instructions === 'string') {
+            sessionStorage.setItem(`quiz_instructions_${data.sessionId}`, instructions);
+          }
           setCookie(`quiz_session_${data.sessionId}`, data.sessionId, 1);
           setCookie(`quiz_participantId`, data.participantId, 1);
           setCookie(`quiz_joincode`, data.joinCode, 1);

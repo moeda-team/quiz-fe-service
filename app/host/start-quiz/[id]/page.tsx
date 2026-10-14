@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 import { QuizDetailFromStorage } from '@/types/quiz';
 import GlobalMusicPlayer from '@/components/GlobalMusicPlayer';
 import { RefreshCcw } from 'lucide-react';
+import { apiGet } from '@/lib/api';
 
 interface Player {
   id: string;
@@ -32,6 +33,21 @@ interface WaitingRoomData {
   status: 'waiting' | 'starting' | 'started';
 }
 
+function instructionContent(instructions: string) {
+  return instructions.split(/(https?:\/\/[^\s<>]+)/gi).map((part, index) => {
+    if (!/^https?:\/\//i.test(part)) return part;
+    const url = part.replace(/[.,!?;:)\]}]+$/, '');
+    const suffix = part.slice(url.length);
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return part;
+      return <span key={index}><a href={parsed.href} target="_blank" rel="noopener noreferrer" className="font-bold text-amber-800 underline underline-offset-2 hover:text-amber-950 break-all">{url}</a>{suffix}</span>;
+    } catch {
+      return part;
+    }
+  });
+}
+
 export default function WaitingRoomPage() {
   const params = useParams();
   const router = useRouter();
@@ -44,7 +60,7 @@ export default function WaitingRoomPage() {
   const [roomData, setRoomData] = useState<WaitingRoomData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
-  const [showFullInstructions, setShowFullInstructions] = useState(false);
+  const [quizInstructions, setQuizInstructions] = useState('');
   const sessionCreationAttempted = useRef(false);
   const [particleStyles, setParticleStyles] = useState<Array<{
     left: string;
@@ -268,6 +284,16 @@ export default function WaitingRoomPage() {
       console.error('Error parsing quiz detail from localStorage:', error);
       return null;
     }
+  }, [quizId]);
+
+  useEffect(() => {
+    let active = true;
+    apiGet<{ data?: { instructions?: string }; instructions?: string }>(`/quizzes/${encodeURIComponent(quizId)}`)
+      .then((response) => {
+        if (active) setQuizInstructions(response.data?.instructions ?? response.instructions ?? '');
+      })
+      .catch((error) => console.warn('Instruksi kuis tidak tersedia:', error));
+    return () => { active = false; };
   }, [quizId]);
 
   useEffect(() => {
@@ -579,24 +605,6 @@ export default function WaitingRoomPage() {
           <span className="relative z-10 text-amber-900 mb-2" style={{ fontFamily: 'Varela Round, serif' }}>{roomData.roomCode}</span>
         </div>
 
-        {quizDetail?.instructions ? (
-          <div
-            onClick={() => setShowFullInstructions((prev) => !prev)}
-            className="fixed bottom-0 left-0 right-0 z-30 w-full overflow-hidden border border-white/30 border-b-0 bg-white/10 backdrop-blur-sm p-4 sm:p-5 pr-16 text-white shadow-xl cursor-pointer active:scale-[0.99] transition-transform"
-          >
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-200 mb-2">
-              Instruksi Quiz
-            </p>
-            <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-line ${showFullInstructions ? '' : 'line-clamp-2'}`} style={{ fontFamily: 'Varela Round, serif' }}>
-              {quizDetail.instructions}
-            </p>
-          </div>
-        ) : (
-          <div className="fixed bottom-0 left-1/2 z-30 w-[92%] max-w-2xl -translate-x-1/2 overflow-hidden rounded-t-[18px] rounded-b-none border border-dashed border-white/40 border-b-0 bg-white/5 p-4 text-white/80 text-xs sm:text-sm">
-            Instruksi kuis belum tersedia.
-          </div>
-        )}
-
         {/* Wooden Start Button */}
         <Button 
           onClick={handleStartQuiz}
@@ -621,6 +629,15 @@ export default function WaitingRoomPage() {
             </>
           )}
         </Button>
+
+        {quizInstructions.trim() && (
+          <section aria-label="Instruksi Quiz" className="relative z-10 mt-4 w-full max-w-2xl rounded-2xl border-2 border-[#9a6b32] bg-[#f7ecd1]/95 px-4 py-3 text-[#4d2f14] shadow-[0_6px_0_#6d4324,0_12px_20px_rgba(41,27,19,0.2)] sm:px-5">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#75461f] sm:text-sm">✦ Instruksi Quiz ✦</h2>
+            <div className="max-h-[30dvh] overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed sm:text-sm">
+              {instructionContent(quizInstructions)}
+            </div>
+          </section>
+        )}
 
         {/* Players Area */}
         <div className="relative w-full flex-1 min-h-[240px] sm:min-h-[300px] md:min-h-[360px] lg:min-h-[420px]">
